@@ -1,0 +1,94 @@
+openapi: 3.0.3
+info:
+  title: Calculator API
+  version: 1.0.0
+  description: |
+    A simple calculator web application exposing both HTML UI endpoints and JSON API endpoints.
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+paths:
+  /:
+    get:
+      summary: Render calculator UI
+      operationId: getIndex
+      responses:
+        '200':
+          description: HTML page of calculator UI
+          content:
+            text/html:
+              schema:
+                type: string
+  /calculate:
+    post:
+      summary: Calculate expression (HTML response)
+      operationId: postCalculateHtml
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                expression:
+                  type: string
+                  description: Arithmetic expression to evaluate
+              required:
+                - expression
+      responses:
+        '200':
+          description: HTML page showing the calculation result
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Invalid expression or division by zero
+          content:
+            text/html:
+              schema:
+                type: string
+  /api/calculate:
+    post:
+      summary: Calculate expression (JSON API)
+      operationId: postCalculateJson
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                expression:
+                  type: string
+                  description: Arithmetic expression to evaluate
+              required:
+                - expression
+      responses:
+        '200':
+          description: Successful calculation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: number
+                    description: Result of the evaluated expression
+                  expression:
+                    type: string
+                    description: Echo of the original expression
+        '400':
+          description: Error in calculation (e.g., invalid expression or divide by zero)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+                  expression:
+                    type: string
+                    description: Echo of the original expression
+components: {}

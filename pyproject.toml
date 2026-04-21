@@ -1,0 +1,24 @@
+[project]
+name = "calculator"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "jinja2",
+    "python-multipart",
+    "httpx>=0.28.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "coverage>=7.13.5",
+    "playwright>=1.58.0",
+    "pytest>=9.0.3",
+    "pytest-playwright>=0.7.2",
+]

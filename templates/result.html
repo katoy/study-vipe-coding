@@ -1,0 +1,6 @@
+{% if 'できません' in result|string or '正しくありません' in result|string %}
+<div class="result" id="result">{{ result }}</div>
+{% else %}
+<input type="text" name="expression" id="expression" value="{{ result }}" style="width:100%;font-size:1.6rem;background:transparent;border:none;color:#eee;outline:none;text-align:right;" autocomplete="off" hx-swap-oob="true" />
+<div class="result" id="result"></div>
+{% endif %}

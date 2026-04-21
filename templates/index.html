@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>計算機</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .calculator { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.12); padding: 32px; width: 320px; }
+    h1 { text-align: center; font-size: 1.4rem; margin-bottom: 24px; color: #333; }
+    .display { background: #1a1a2e; color: #eee; border-radius: 8px; padding: 16px; font-size: 1.6rem; text-align: right; min-height: 60px; margin-bottom: 16px; word-break: break-all; }
+    .buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    button { padding: 16px; border: none; border-radius: 8px; font-size: 1.1rem; cursor: pointer; transition: opacity 0.1s; }
+    button:active { opacity: 0.7; }
+    .btn-num { background: #e8eaf6; color: #333; }
+    .btn-op  { background: #5c6bc0; color: #fff; }
+    .btn-eq  { background: #43a047; color: #fff; }
+    .btn-clr { background: #e53935; color: #fff; }
+    .btn-span2 { grid-column: span 2; }
+    .result { text-align: center; margin-top: 16px; color: #e53935; font-size: 0.95rem; min-height: 20px; }
+  </style>
+</head>
+<body>
+<div class="calculator">
+  <h1>計算機</h1>
+  <form id="calc-form" hx-post="/calculate" hx-target="#result" hx-swap="outerHTML" method="post">
+    <div class="display">
+      <input type="text" name="expression" id="expression" value="{{ expression or '' }}" style="width:100%;font-size:1.6rem;background:transparent;border:none;color:#eee;outline:none;text-align:right;" autocomplete="off" />
+    </div>
+    <div class="buttons">
+      <button class="btn-clr btn-span2" type="button" onclick="document.getElementById('expression').value='';document.getElementById('result').textContent='';">AC</button>
+      <button class="btn-op" type="button" onclick="appendToExpr('%')">%</button>
+      <button class="btn-op" type="button" onclick="appendToExpr('/')">÷</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('7')">7</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('8')">8</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('9')">9</button>
+      <button class="btn-op" type="button" onclick="appendToExpr('*')">×</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('4')">4</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('5')">5</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('6')">6</button>
+      <button class="btn-op" type="button" onclick="appendToExpr('-')">−</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('1')">1</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('2')">2</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('3')">3</button>
+      <button class="btn-op" type="button" onclick="appendToExpr('+')">+</button>
+      <button class="btn-num btn-span2" type="button" onclick="appendToExpr('0')">0</button>
+      <button class="btn-num" type="button" onclick="appendToExpr('.')">.</button>
+      <button class="btn-eq" type="submit">=</button>
+    </div>
+    <div class="result" id="result">{% if result %}{{ result }}{% endif %}</div>
+  </form>
+</div>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script>
+function appendToExpr(val) {
+  const input = document.getElementById('expression');
+  input.value += val;
+  input.focus();
+}
+</script>
+</body>
+</html>
