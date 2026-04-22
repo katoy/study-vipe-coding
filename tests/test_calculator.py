@@ -1,6 +1,6 @@
 import pytest
 from fastapi.testclient import TestClient
-from app import app
+from app.main import app
 
 @pytest.fixture
 def client():
@@ -80,6 +80,16 @@ def test_negative_number(client):
     data, code = calc(client, "-5 + 3")
     assert code == 200
     assert data.get("result") == -2
+
+def test_positive_number(client):
+    data, code = calc(client, "+5 + 3")
+    assert code == 200
+    assert data.get("result") == 8
+
+def test_expression_too_long(client):
+    data, code = calc(client, "1" * 101)
+    assert code == 400
+    assert "error" in data
 
 @pytest.mark.parametrize("expr", [
     "__import__('os').system('id')",

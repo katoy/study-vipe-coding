@@ -8,6 +8,7 @@ _OPS = {
     ast.Div: operator.truediv,
     ast.Mod: operator.mod,
     ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
 }
 
 def _eval_node(node: ast.expr) -> int | float:
@@ -20,6 +21,8 @@ def _eval_node(node: ast.expr) -> int | float:
     raise ValueError("不正な式")
 
 def safe_eval(expr: str) -> int | float:
+    if len(expr) > 100:
+        raise ValueError("計算式が長すぎます")
     tree = ast.parse(expr, mode="eval")
     result = _eval_node(tree.body)
     if isinstance(result, float) and result.is_integer():
