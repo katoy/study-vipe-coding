@@ -20,6 +20,7 @@ dev = [
     "coverage>=7.13.5",
     "playwright>=1.58.0",
     "pytest>=9.0.3",
+    "pytest-cov>=4.1.0",
     "pytest-playwright>=0.7.2",
     "ruff>=0.3.0",
     "mypy>=1.9.0",
