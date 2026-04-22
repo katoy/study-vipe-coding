@@ -1,8 +1,9 @@
 import logging
 import os
-import threading
 import time
+import threading
 from pathlib import Path
+from typing import Callable, Awaitable
 
 from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,11 +48,13 @@ templates.env.cache = {}
 _RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "60"))
 _RATE_LIMIT_WINDOW = 60  # seconds
 _rate_lock = threading.Lock()
-_rate_store: dict = {}
+_rate_store: dict[str, dict[str, float | int]] = {}
 
 
 @app.middleware("http")
-async def rate_limit_middleware(request: Request, call_next):
+async def rate_limit_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
     # Apply only to API endpoints to avoid interfering with template loads
     if request.url.path.startswith("/api/"):
         client_host = "unknown"
