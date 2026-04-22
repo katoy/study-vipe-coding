@@ -48,6 +48,7 @@ _RATE_LIMIT_WINDOW = 60  # seconds
 _rate_lock = threading.Lock()
 _rate_store: dict = {}
 
+
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
     # Apply only to API endpoints to avoid interfering with template loads
@@ -77,13 +78,19 @@ async def index(request: Request) -> Response:
 async def calculate(request: Request, expression: str = Form(...)) -> Response:
     try:
         result = safe_eval(expression)
-        return templates.TemplateResponse(request, "result.html", {"result": result, "expression": expression})
+        return templates.TemplateResponse(
+            request, "result.html", {"result": result, "expression": expression}
+        )
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {expression}")
-        return templates.TemplateResponse(request, "result.html", {"result": "0で割ることはできません", "expression": expression})
+        return templates.TemplateResponse(
+            request, "result.html", {"result": "0で割ることはできません", "expression": expression}
+        )
     except (SyntaxError, ValueError) as e:
         logger.warning(f"Invalid expression: {expression} - {e}")
-        return templates.TemplateResponse(request, "result.html", {"result": "計算式が正しくありません", "expression": expression})
+        return templates.TemplateResponse(
+            request, "result.html", {"result": "計算式が正しくありません", "expression": expression}
+        )
     except Exception as e:
         logger.error(f"Unexpected error calculating {expression}: {e}", exc_info=True)
         # Re-raise so the error is not silently swallowed and is visible in logs/tracebacks
@@ -101,10 +108,19 @@ async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
         return JSONResponse(content={"result": result, "expression": body.expression})
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {body.expression}")
-        return JSONResponse(content={"error": "0で割ることはできません", "expression": body.expression}, status_code=400)
+        return JSONResponse(
+            content={"error": "0で割ることはできません", "expression": body.expression},
+            status_code=400,
+        )
     except (SyntaxError, ValueError) as e:
         logger.warning(f"Invalid expression: {body.expression} - {e}")
-        return JSONResponse(content={"error": "計算式が正しくありません", "expression": body.expression}, status_code=400)
+        return JSONResponse(
+            content={"error": "計算式が正しくありません", "expression": body.expression},
+            status_code=400,
+        )
     except Exception as e:
         logger.error(f"Unexpected error calculating {body.expression}: {e}", exc_info=True)
-        return JSONResponse(content={"error": "システムエラーが発生しました", "expression": body.expression}, status_code=500)
+        return JSONResponse(
+            content={"error": "システムエラーが発生しました", "expression": body.expression},
+            status_code=500,
+        )

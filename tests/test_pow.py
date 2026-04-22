@@ -7,6 +7,7 @@ import pytest
 def reload_calc_with_env(monkeypatch, allow_pow_value: str):
     monkeypatch.setenv("ALLOW_POW", allow_pow_value)
     import app.services.calculator as calc
+
     importlib.reload(calc)
     return calc
 

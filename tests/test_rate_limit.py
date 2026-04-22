@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 def reload_app_with_env(monkeypatch, rate_limit_value: str):
     monkeypatch.setenv("RATE_LIMIT_PER_MIN", rate_limit_value)
     import app.main as main
+
     importlib.reload(main)
     return main.app
 
