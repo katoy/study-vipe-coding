@@ -1,6 +1,8 @@
 #!/bin/bash
-# Activate venv if exists
-if [ -f .venv/bin/activate ]; then
-  source .venv/bin/activate
-fi
-exec uvicorn app:app --reload --host 0.0.0.0 --port 8000
+set -e
+
+echo "Building Docker image..."
+docker build -t calculator-app .
+
+echo "Starting Docker container on port 8000..."
+docker run --rm -p 8000:8000 calculator-app

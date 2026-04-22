@@ -8,7 +8,7 @@ def client():
         yield c
 
 def calc(client, expr):
-    res = client.post("/api/calculate", data={"expression": expr})
+    res = client.post("/api/calculate", json={"expression": expr})
     # FastAPI returns HTML; we parse JSON if possible, else fallback to text
     try:
         return res.json(), res.status_code
