@@ -5,17 +5,22 @@ RUN useradd -m -u 1000 appuser
 
 WORKDIR /app
 
-# Install uv
+ENV PYTHONUNBUFFERED=1
+
+# Install uv (tool for running/installing project)
 RUN pip install --no-cache-dir uv
 
-# Copy dependency file
-COPY pyproject.toml .
+# Copy dependency files to ensure reproducible installs
+COPY pyproject.toml uv.lock ./
 
 # Install dependencies system-wide via uv
 RUN uv pip install --system .
 
 # Copy application code
 COPY app ./app
+
+# Ensure non-root user owns the application files
+RUN chown -R appuser:appuser /app
 
 # Expose the API port
 EXPOSE 8000
