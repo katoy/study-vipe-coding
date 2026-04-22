@@ -34,24 +34,27 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+# Disable Jinja2 internal template caching to avoid unhashable globals issues in some environments
+# (In production, consider configuring a proper cache or ensuring template globals are hashable.)
+templates.env.cache = {}
 
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> Response:
-    return templates.TemplateResponse("index.html", {"request": request, "result": None, "expression": ""})
+    return templates.TemplateResponse(name="index.html", context={"request": request, "result": None, "expression": ""})
 
 
 @app.post("/calculate")
 async def calculate(request: Request, expression: str = Form(...)) -> Response:
     try:
         result = safe_eval(expression)
-        return templates.TemplateResponse("result.html", {"request": request, "result": result, "expression": expression})
+        return templates.TemplateResponse(name="result.html", context={"request": request, "result": result, "expression": expression})
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {expression}")
-        return templates.TemplateResponse("result.html", {"request": request, "result": "0で割ることはできません", "expression": expression})
+        return templates.TemplateResponse(name="result.html", context={"request": request, "result": "0で割ることはできません", "expression": expression})
     except (SyntaxError, ValueError) as e:
         logger.warning(f"Invalid expression: {expression} - {e}")
-        return templates.TemplateResponse("result.html", {"request": request, "result": "計算式が正しくありません", "expression": expression})
+        return templates.TemplateResponse(name="result.html", context={"request": request, "result": "計算式が正しくありません", "expression": expression})
     except Exception as e:
         logger.error(f"Unexpected error calculating {expression}: {e}", exc_info=True)
         # Re-raise so the error is not silently swallowed and is visible in logs/tracebacks
