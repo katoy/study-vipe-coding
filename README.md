@@ -13,11 +13,11 @@
 - [Docker コンテナでの実行（デプロイ）](#docker-コンテナでの実行デプロイ)
 - [ライセンス](#ライセンス)
 
-## プロジェクトの概要と主な機能
-- **HTMXによるSPAライクなUI**：ページ遷移を伴わず、非同期通信によってDOMの一部のみを更新する快適なユーザー体験を実現しています。
-- **RESTful APIの提供**：バックエンドに `/api/calculate` エンドポイントを実装しており、別アプリケーションからのJSONベースの計算リクエストに対応可能です。
-- **安全な式評価ロジック**：`eval`の脆弱性を回避するため、抽象構文木（AST）を利用したサンドボックス型の計算ロジックを独自実装しています。
-- **堅牢なテストとCI/CD**：`pytest` や `Playwright` を用いた自動テスト網と GitHub Actions による自動検証（CI）が構築されています。
+## 概要
+- フロントエンド: HTMX を用いた部分更新（templates/index.html, templates/result.html）
+- バックエンド: FastAPI（app.main）
+- 安全な式評価: app.services.calculator.safe_eval（AST ベース）
+- テスト: pytest をベースにユニットテストと Playwright を用いた E2E が含まれることを想定しています。
 
 ## フォルダ構成とファイル一覧
 
@@ -46,10 +46,13 @@
 │   ├── test_calculator.py     # 計算ロジックおよびAPIのユニットテスト
 │   └── test_ui.py             # Playwright を用いた E2E（ブラウザ）テスト
 ├── Dockerfile                 # 本番・デプロイ用コンテナイメージ定義
+├── compose.yaml               # Docker Compose用設定ファイル
 ├── pyproject.toml             # uv を用いたプロジェクト設定と依存関係（Linter等の設定含む）
 ├── pytest.ini                 # pytest の基本設定（Playwright無効化等の保護設定）
 ├── run.bat / run.sh           # アプリケーションをDockerで起動するためのスクリプト
 ├── test_ui.bat / test_ui.sh   # ローカルで E2E テストを安全に実行するためのスクリプト
+├── uv.lock                    # uv の依存関係ロックファイル
+├── .python-version            # Python バージョン指定ファイル
 └── README.md                  # 本ドキュメント
 ```
 
@@ -59,7 +62,7 @@
 ```bash
 # 1. リポジトリのクローンとディレクトリへの移動
 git clone <リポジトリURL>
-cd calculator
+cd study-vipe-coding
 
 # 2. 依存パッケージのインストール（uvを利用）
 uv sync
@@ -123,8 +126,27 @@ TOTAL                           67      6    91%
 ```
 *(※ `app.main` および `app.services.calculator` などの中核ロジックは実質100%近いカバレッジを維持しています。)*
 
+### 4. 静的解析（Linter/Formatter/型チェック）
+コード品質を保つため、`Ruff` によるリントとフォーマット、`Mypy` による型チェックを導入しています。CIでも実行されるため、コミット前にローカルで確認してください。
+
+```bash
+# フォーマットのチェック
+uv run ruff format --check app tests
+
+# Linterの実行
+uv run ruff check app tests
+
+# 型チェックの実行
+uv run mypy app
+```
+
 ## Docker コンテナでの実行（デプロイ）
 Dockerを利用して、ローカルの依存環境に影響されることなくアプリケーションを実行できます。
+
+**Docker Compose を使用する方法 (推奨):**
+```bash
+docker compose up -d
+```
 
 **起動スクリプトを使用する方法:**
 プラットフォームに応じたスクリプトを実行することで、イメージのビルドとコンテナの起動を自動で行います。
