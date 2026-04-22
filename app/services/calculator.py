@@ -22,11 +22,48 @@ def _eval_node(node: ast.expr) -> int | float:
     raise ValueError("不正な式")
 
 
+def _check_complexity(node: ast.AST, max_nodes: int = 2000, max_depth: int = 60) -> None:
+    """Traverse the AST and ensure node count and depth are within limits.
+
+    Raises ValueError if limits exceeded.
+    """
+    count = 0
+    maxd = 0
+
+    def dfs(n: ast.AST, depth: int) -> None:
+        nonlocal count, maxd
+        count += 1
+        if depth > maxd:
+            maxd = depth
+        if count > max_nodes:
+            raise ValueError("計算式が複雑すぎます")
+        for child in ast.iter_child_nodes(n):
+            dfs(child, depth + 1)
+
+    dfs(node, 0)
+    if maxd > max_depth:
+        raise ValueError("計算式が複雑すぎます")
+
+
 def safe_eval(expr: str) -> int | float:
+    # Basic input length guard
     if len(expr) > 100:
         raise ValueError("計算式が長すぎます")
-    tree = ast.parse(expr, mode="eval")
-    result = _eval_node(tree.body)
+
+    try:
+        tree = ast.parse(expr, mode="eval")
+    except SyntaxError:
+        raise
+
+    # Complexity checks to prevent DoS via huge/deep expressions
+    _check_complexity(tree)
+
+    try:
+        result = _eval_node(tree.body)
+    except RecursionError:
+        # Protect against pathological recursion/very deep AST evaluation
+        raise ValueError("計算式が複雑すぎます")
+
     if isinstance(result, float) and result.is_integer():
         return int(result)
     return result
