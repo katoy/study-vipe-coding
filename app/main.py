@@ -1,4 +1,5 @@
 import logging
+import os
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
@@ -15,9 +16,16 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
+# CORS: allow origins controlled via ALLOW_ORIGINS env (comma-separated). Default to localhost for development.
+_allow_origins = os.getenv("ALLOW_ORIGINS")
+if _allow_origins:
+    allow_origins = [o.strip() for o in _allow_origins.split(",") if o.strip()]
+else:
+    allow_origins = ["http://localhost:8000"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,38 +38,24 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> Response:
-    return templates.TemplateResponse(request, "index.html", {"result": None, "expression": ""})
+    return templates.TemplateResponse("index.html", {"request": request, "result": None, "expression": ""})
 
 
 @app.post("/calculate")
 async def calculate(request: Request, expression: str = Form(...)) -> Response:
     try:
         result = safe_eval(expression)
-        return templates.TemplateResponse(
-            request, "result.html", {"result": result, "expression": expression}
-        )
+        return templates.TemplateResponse("result.html", {"request": request, "result": result, "expression": expression})
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {expression}")
-        return templates.TemplateResponse(
-            request,
-            "result.html",
-            {"result": "0で割ることはできません", "expression": expression},
-        )
+        return templates.TemplateResponse("result.html", {"request": request, "result": "0で割ることはできません", "expression": expression})
     except (SyntaxError, ValueError) as e:
         logger.warning(f"Invalid expression: {expression} - {e}")
-        return templates.TemplateResponse(
-            request,
-            "result.html",
-            {"result": "計算式が正しくありません", "expression": expression},
-        )
+        return templates.TemplateResponse("result.html", {"request": request, "result": "計算式が正しくありません", "expression": expression})
     except Exception as e:
         logger.error(f"Unexpected error calculating {expression}: {e}", exc_info=True)
-        return templates.TemplateResponse(
-            request,
-            "result.html",
-            {"result": "システムエラーが発生しました", "expression": expression},
-            status_code=500,
-        )
+        # Re-raise so the error is not silently swallowed and is visible in logs/tracebacks
+        raise
 
 
 class CalcRequest(BaseModel):
@@ -75,19 +69,10 @@ async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
         return JSONResponse(content={"result": result, "expression": body.expression})
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {body.expression}")
-        return JSONResponse(
-            content={"error": "0で割ることはできません", "expression": body.expression},
-            status_code=400,
-        )
+        return JSONResponse(content={"error": "0で割ることはできません", "expression": body.expression}, status_code=400)
     except (SyntaxError, ValueError) as e:
         logger.warning(f"Invalid expression: {body.expression} - {e}")
-        return JSONResponse(
-            content={"error": "計算式が正しくありません", "expression": body.expression},
-            status_code=400,
-        )
+        return JSONResponse(content={"error": "計算式が正しくありません", "expression": body.expression}, status_code=400)
     except Exception as e:
         logger.error(f"Unexpected error calculating {body.expression}: {e}", exc_info=True)
-        return JSONResponse(
-            content={"error": "システムエラーが発生しました", "expression": body.expression},
-            status_code=500,
-        )
+        return JSONResponse(content={"error": "システムエラーが発生しました", "expression": body.expression}, status_code=500)
