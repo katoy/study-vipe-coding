@@ -1,6 +1,6 @@
 # Webベース電卓アプリケーション
 
-![アプリケーションの動作デモ](static/calculator_demo.gif)
+![アプリケーションの動作デモ](app/static/calculator_demo.gif)
 
 本プロジェクトは、Pythonベースの軽量Webフレームワークである **FastAPI** と、フロントエンドの動的描画を容易にする **HTMX** を用いて開発されたシンプルなWeb電卓アプリケーションです。ブラウザ上で動作する対話的なUIを提供するだけでなく、外部プログラムから利用可能なJSON APIとしての機能も備えています。
 
@@ -31,7 +31,7 @@ cd calculator
 uv sync
 
 # 3. 開発用サーバーの起動
-uv run uvicorn app:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
 サーバーが起動したら、ブラウザで `http://localhost:8000` にアクセスすると、電卓のUI画面が表示されます。
 
@@ -39,7 +39,7 @@ uv run uvicorn app:app --reload --port 8000
 他のプログラムやクライアントから計算処理を呼び出すためのAPIエンドポイントについて説明します。
 
 ### POST `/api/calculate`
-- **リクエスト形式**（`application/x-www-form-urlencoded`）: `{ "expression": "<算術式>" }`
+- **リクエスト形式**（`application/json`）: `{ "expression": "<算術式>" }`
 - **レスポンス形式**:
   - `200 OK` (正常終了) – `{ "result": <数値>, "expression": "..." }`
   - `400 Bad Request` (エラー) – `{ "error": "<エラー詳細>", "expression": "..." }` （例: ゼロ除算や不正な式の入力時）
@@ -61,13 +61,13 @@ uv run coverage report -m
 
 **カバレッジ測定結果（実行例）:**
 ```text
-Name                       Stmts   Miss  Cover
-----------------------------------------------
-app.py                        39      0   100%
-calculator.py                 17      0   100%
-tests\test_calculator.py      83      2    98%
-----------------------------------------------
-TOTAL                        139      2    99%
+Name                           Stmts   Miss  Cover
+--------------------------------------------------
+app\main.py                       39      0   100%
+app\services\calculator.py        17      0   100%
+tests\test_calculator.py          83      2    98%
+--------------------------------------------------
+TOTAL                            139      2    99%
 ```
 
 ## Docker コンテナでの実行（デプロイ）
