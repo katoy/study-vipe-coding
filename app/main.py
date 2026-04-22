@@ -3,7 +3,7 @@ import os
 import time
 import threading
 from pathlib import Path
-from typing import Callable, Awaitable
+from typing import Callable, Awaitable, Dict
 
 from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,7 +48,7 @@ templates.env.cache = {}
 _RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "60"))
 _RATE_LIMIT_WINDOW = 60  # seconds
 _rate_lock = threading.Lock()
-_rate_store: dict[str, dict[str, float | int]] = {}
+_rate_store: Dict[str, Dict[str, float | int]] = {}
 
 
 @app.middleware("http")
