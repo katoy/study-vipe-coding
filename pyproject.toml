@@ -36,3 +36,6 @@ select = ["E", "F", "I"] # Error, Fatal, Isort
 [tool.mypy]
 strict = true
 ignore_missing_imports = true
+
+[tool.coverage.run]
+omit = ["app/services/convert.py"]

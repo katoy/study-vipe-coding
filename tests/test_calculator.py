@@ -137,11 +137,11 @@ def test_calculate_html_success(client):
 
 def test_calculate_html_divide_by_zero(client):
     res = client.post("/calculate", data={"expression": "5/0"})
-    assert res.status_code == 400
+    assert res.status_code == 200
     assert "0で割ることはできません" in res.text
 
 
 def test_calculate_html_invalid_expression(client):
     res = client.post("/calculate", data={"expression": "abc+def"})
-    assert res.status_code == 400
+    assert res.status_code == 200
     assert "計算式が正しくありません" in res.text

@@ -46,7 +46,6 @@ async def calculate(request: Request, expression: str = Form(...)) -> Response:
             request,
             "result.html",
             {"result": "0で割ることはできません", "expression": expression},
-            status_code=400,
         )
     except (SyntaxError, ValueError) as e:
         logger.warning(f"Invalid expression: {expression} - {e}")
@@ -54,7 +53,6 @@ async def calculate(request: Request, expression: str = Form(...)) -> Response:
             request,
             "result.html",
             {"result": "計算式が正しくありません", "expression": expression},
-            status_code=400,
         )
     except Exception as e:
         logger.error(f"Unexpected error calculating {expression}: {e}", exc_info=True)

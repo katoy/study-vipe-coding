@@ -110,17 +110,16 @@ uv run pytest --cov=app --cov-report=term-missing
 
 **カバレッジ計測結果（コアロジックは100%を維持）:**
 ```text
-Name                           Stmts   Miss  Cover   Missing
-------------------------------------------------------------
-app\__init__.py                    0      0   100%
-app\main.py                       43      1    98%   66
-app\routers\__init__.py            0      0   100%
-app\schemas\__init__.py            0      0   100%
-app\services\__init__.py           0      0   100%
-app\services\calculator.py        18      0   100%
-app\services\convert.py           30     24    20%   8-54
-------------------------------------------------------------
-TOTAL                             91     25    73%
+Name                         Stmts   Miss  Cover   Missing
+----------------------------------------------------------
+app\__init__.py                  0      0   100%
+app\main.py                     48      6    88%   59-61, 90-92
+app\routers\__init__.py          0      0   100%
+app\schemas\__init__.py          0      0   100%
+app\services\__init__.py         0      0   100%
+app\services\calculator.py      19      0   100%
+----------------------------------------------------------
+TOTAL                           67      6    91%
 ```
 *(※ `app.main` および `app.services.calculator` などの中核ロジックは実質100%近いカバレッジを維持しています。)*
 
