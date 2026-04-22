@@ -13,11 +13,11 @@
 - [Docker コンテナでの実行（デプロイ）](#docker-コンテナでの実行デプロイ)
 - [ライセンス](#ライセンス)
 
-## プロジェクトの概要と主な機能
-- **HTMXによるSPAライクなUI**：ページ遷移を伴わず、非同期通信によってDOMの一部のみを更新する快適なユーザー体験を実現しています。
-- **RESTful APIの提供**：バックエンドに `/api/calculate` エンドポイントを実装しており、別アプリケーションからのJSONベースの計算リクエストに対応可能です。
-- **安全な式評価ロジック**：`eval`の脆弱性を回避するため、抽象構文木（AST）を利用したサンドボックス型の計算ロジックを独自実装しています。
-- **堅牢なテストとCI/CD**：`pytest` や `Playwright` を用いた自動テスト網と GitHub Actions による自動検証（CI）が構築されています。
+## 概要
+- フロントエンド: HTMX を用いた部分更新（templates/index.html, templates/result.html）
+- バックエンド: FastAPI（app.main）
+- 安全な式評価: app.services.calculator.safe_eval（AST ベース）
+- テスト: pytest をベースにユニットテストと Playwright を用いた E2E が含まれることを想定しています。
 
 ## フォルダ構成とファイル一覧
 
@@ -46,10 +46,13 @@
 │   ├── test_calculator.py     # 計算ロジックおよびAPIのユニットテスト
 │   └── test_ui.py             # Playwright を用いた E2E（ブラウザ）テスト
 ├── Dockerfile                 # 本番・デプロイ用コンテナイメージ定義
+├── compose.yaml               # Docker Compose用設定ファイル
 ├── pyproject.toml             # uv を用いたプロジェクト設定と依存関係（Linter等の設定含む）
 ├── pytest.ini                 # pytest の基本設定（Playwright無効化等の保護設定）
 ├── run.bat / run.sh           # アプリケーションをDockerで起動するためのスクリプト
 ├── test_ui.bat / test_ui.sh   # ローカルで E2E テストを安全に実行するためのスクリプト
+├── uv.lock                    # uv の依存関係ロックファイル
+├── .python-version            # Python バージョン指定ファイル
 └── README.md                  # 本ドキュメント
 ```
 
@@ -59,7 +62,7 @@
 ```bash
 # 1. リポジトリのクローンとディレクトリへの移動
 git clone <リポジトリURL>
-cd calculator
+cd study-vipe-coding
 
 # 2. 依存パッケージのインストール（uvを利用）
 uv sync
@@ -123,8 +126,47 @@ TOTAL                           67      6    91%
 ```
 *(※ `app.main` および `app.services.calculator` などの中核ロジックは実質100%近いカバレッジを維持しています。)*
 
+### 4. 静的解析（Linter/Formatter/型チェック）
+コード品質を保つため、`Ruff` によるリントとフォーマット、`Mypy` による型チェックを導入しています。CIでも実行されるため、コミット前にローカルで確認してください。
+
+```bash
+# フォーマットのチェック
+uv run ruff format --check app tests
+
+# Linterの実行
+uv run ruff check app tests
+
+# 型チェックの実行
+uv run mypy app
+```
+
+## 環境変数（CORS 設定）
+アプリケーションは ALLOW_ORIGINS 環境変数で CORS の許可オリジンを指定できます。値はカンマ区切りで複数指定可能です（例: `http://localhost:8000,https://example.com`）。デフォルトは `http://localhost:8000`（開発用）です。
+
+本番ではワイルドカード（`*`）を避け、必要なオリジンのみを列挙してください。Docker で実行する場合は `-e ALLOW_ORIGINS="https://example.com"` のように環境変数を渡します。ALLOW_ORIGINS は空白をトリムして扱われます。
+
+## その他の環境変数
+- ALLOW_POW
+  - 説明: べき乗演算子（`**` / ast.Pow）を有効化するフラグ。
+  - デフォルト: `0` (無効)
+  - 値: `1`, `true`, `yes` のいずれかで有効化されます。
+  - 注意: デフォルトでは無効です。べき乗は急激に大きな数値を生むため、セキュリティとリソース保護の観点から本番での有効化は慎重に行ってください。許可時でも指数や底に上限チェックが入ります。
+
+- RATE_LIMIT_PER_MIN
+  - 説明: `/api/` エンドポイントに適用される1分あたりのリクエスト上限（簡易 in-memory 実装）。
+  - デフォルト: `60`
+  - 設定例: `-e RATE_LIMIT_PER_MIN=200`
+  - 注意: 現在の実装は単一プロセス向けの簡易版です。分散環境や複数ワーカーでの利用は Redis 等の外部ストアを用いた実装を推奨します。
+
+（参考）設定例は `.env.example` を参照してください。
+
 ## Docker コンテナでの実行（デプロイ）
 Dockerを利用して、ローカルの依存環境に影響されることなくアプリケーションを実行できます。
+
+**Docker Compose を使用する方法 (推奨):**
+```bash
+docker compose up -d
+```
 
 **起動スクリプトを使用する方法:**
 プラットフォームに応じたスクリプトを実行することで、イメージのビルドとコンテナの起動を自動で行います。

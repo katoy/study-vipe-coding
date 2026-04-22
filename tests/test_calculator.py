@@ -110,6 +110,15 @@ def test_expression_too_long(client):
     assert "error" in data
 
 
+def test_deep_nesting(client):
+    # Create expression with deep parentheses to trigger depth guard
+    depth = 70
+    expr = "(" * depth + "1" + ")" * depth
+    data, code = calc(client, expr)
+    assert code == 400
+    assert "error" in data
+
+
 @pytest.mark.parametrize(
     "expr",
     [

@@ -40,8 +40,20 @@ jobs:
         run: uv run playwright install --with-deps chromium
 
       - name: Run Pytest (Unit Tests & E2E Tests)
+        # Provide environment variables for tests: allow pow disabled, rate limit low to exercise limiter, allow_origins set for CORS tests
+        env:
+          ALLOW_POW: "0"
+          RATE_LIMIT_PER_MIN: "1000"
+          ALLOW_ORIGINS: "http://localhost:8000"
         # 開発環境の pytest.ini (Playwright無効化) を上書きして全テストを実行
         run: uv run pytest -o addopts="" --cov=app --cov-report=xml
+
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
 
   docker-build-check:
     runs-on: ubuntu-latest
