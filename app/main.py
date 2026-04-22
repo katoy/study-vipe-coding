@@ -1,5 +1,7 @@
 import logging
 import os
+import time
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, Form, Request
@@ -16,7 +18,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
-# CORS: allow origins controlled via ALLOW_ORIGINS env (comma-separated). Default to localhost for development.
+# CORS: allow origins controlled via ALLOW_ORIGINS env (comma-separated).
+# Default to http://localhost:8000 for development.
 _allow_origins = os.getenv("ALLOW_ORIGINS")
 if _allow_origins:
     allow_origins = [o.strip() for o in _allow_origins.split(",") if o.strip()]
@@ -40,8 +43,6 @@ templates.env.cache = {}
 
 # Simple in-memory rate limiting for API endpoints. Configurable via RATE_LIMIT_PER_MIN env var.
 # This is intentionally simple and suitable for single-process deployments or dev/test harnesses.
-import time
-import threading
 
 _RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "60"))
 _RATE_LIMIT_WINDOW = 60  # seconds
