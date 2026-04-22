@@ -1,8 +1,9 @@
 import ast
 import operator
 import os
+from typing import Any, Callable, Dict
 
-_OPS = {
+_OPS: Dict[type, Callable[..., Any]] = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
     ast.Mult: operator.mul,
@@ -13,7 +14,7 @@ _OPS = {
 }
 
 
-def _eval_node(node: ast.expr, ops: dict) -> int | float:
+def _eval_node(node: ast.expr, ops: Dict[type, Callable[..., Any]]) -> int | float:
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
         return node.value
     if isinstance(node, ast.UnaryOp) and type(node.op) in ops:
