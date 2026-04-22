@@ -140,6 +140,11 @@ uv run ruff check app tests
 uv run mypy app
 ```
 
+## 環境変数（CORS 設定）
+アプリケーションは ALLOW_ORIGINS 環境変数で CORS の許可オリジンを指定できます。値はカンマ区切りで複数指定可能です（例: `http://localhost:8000,https://example.com`）。デフォルトは `http://localhost:8000`（開発用）です。
+
+本番ではワイルドカード（`*`）を避け、必要なオリジンのみを列挙してください。Docker で実行する場合は `-e ALLOW_ORIGINS="https://example.com"` のように環境変数を渡します。ALLOW_ORIGINS は空白をトリムして扱われます。
+
 ## Docker コンテナでの実行（デプロイ）
 Dockerを利用して、ローカルの依存環境に影響されることなくアプリケーションを実行できます。
 
