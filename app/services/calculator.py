@@ -1,5 +1,6 @@
 import ast
 import operator
+import os
 
 _OPS = {
     ast.Add: operator.add,
@@ -12,13 +13,22 @@ _OPS = {
 }
 
 
-def _eval_node(node: ast.expr) -> int | float:
+def _eval_node(node: ast.expr, ops: dict) -> int | float:
     if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
         return node.value
-    if isinstance(node, ast.UnaryOp) and type(node.op) in _OPS:
-        return _OPS[type(node.op)](_eval_node(node.operand))  # type: ignore
-    if isinstance(node, ast.BinOp) and type(node.op) in _OPS:
-        return _OPS[type(node.op)](_eval_node(node.left), _eval_node(node.right))  # type: ignore
+    if isinstance(node, ast.UnaryOp) and type(node.op) in ops:
+        return ops[type(node.op)](_eval_node(node.operand, ops))  # type: ignore
+    if isinstance(node, ast.BinOp) and type(node.op) in ops:
+        left = _eval_node(node.left, ops)
+        right = _eval_node(node.right, ops)
+        # Special guarding for power operator to avoid huge results
+        if type(node.op) is ast.Pow:
+            # Only allow reasonably small integer exponents
+            if not isinstance(right, int) or abs(right) > 20:
+                raise ValueError("べき乗の指数が大きすぎます")
+            if abs(left) > 1e6:
+                raise ValueError("べき乗の底が大きすぎます")
+        return ops[type(node.op)](left, right)  # type: ignore
     raise ValueError("不正な式")
 
 
@@ -58,8 +68,14 @@ def safe_eval(expr: str) -> int | float:
     # Complexity checks to prevent DoS via huge/deep expressions
     _check_complexity(tree)
 
+    # Build operator mapping per-invocation. Power operator is opt-in via ALLOW_POW env var.
+    ops = _OPS.copy()
+    allow_pow = os.getenv("ALLOW_POW", "0").lower() in ("1", "true", "yes")
+    if allow_pow:
+        ops[ast.Pow] = operator.pow
+
     try:
-        result = _eval_node(tree.body)
+        result = _eval_node(tree.body, ops)
     except RecursionError:
         # Protect against pathological recursion/very deep AST evaluation
         raise ValueError("計算式が複雑すぎます")
