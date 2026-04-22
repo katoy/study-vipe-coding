@@ -36,8 +36,12 @@ jobs:
       - name: Run Mypy (Type Check)
         run: uv run mypy app
 
-      - name: Run Pytest (Unit Tests & Coverage)
-        run: uv run pytest --cov=app --cov-report=xml
+      - name: Install Playwright Browsers
+        run: uv run playwright install --with-deps chromium
+
+      - name: Run Pytest (Unit Tests & E2E Tests)
+        # 開発環境の pytest.ini (Playwright無効化) を上書きして全テストを実行
+        run: uv run pytest -o addopts="" --cov=app --cov-report=xml
 
   docker-build-check:
     runs-on: ubuntu-latest
