@@ -48,6 +48,13 @@ jobs:
         # 開発環境の pytest.ini (Playwright無効化) を上書きして全テストを実行
         run: uv run pytest -o addopts="" --cov=app --cov-report=xml
 
+      - name: Upload coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
   docker-build-check:
     runs-on: ubuntu-latest
     needs: test-and-lint
