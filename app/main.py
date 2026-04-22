@@ -38,6 +38,35 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 # (In production, consider configuring a proper cache or ensuring template globals are hashable.)
 templates.env.cache = {}
 
+# Simple in-memory rate limiting for API endpoints. Configurable via RATE_LIMIT_PER_MIN env var.
+# This is intentionally simple and suitable for single-process deployments or dev/test harnesses.
+import time
+import threading
+
+_RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "60"))
+_RATE_LIMIT_WINDOW = 60  # seconds
+_rate_lock = threading.Lock()
+_rate_store: dict = {}
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    # Apply only to API endpoints to avoid interfering with template loads
+    if request.url.path.startswith("/api/"):
+        client_host = "unknown"
+        if request.client and request.client.host:
+            client_host = request.client.host
+        now = time.time()
+        with _rate_lock:
+            entry = _rate_store.get(client_host)
+            if entry is None or now - entry["start"] >= _RATE_LIMIT_WINDOW:
+                _rate_store[client_host] = {"count": 1, "start": now}
+            else:
+                if entry["count"] >= _RATE_LIMIT_PER_MIN:
+                    return JSONResponse(status_code=429, content={"error": "Too many requests"})
+                entry["count"] += 1
+    response = await call_next(request)
+    return response
+
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> Response:
