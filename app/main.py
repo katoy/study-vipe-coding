@@ -1,9 +1,9 @@
 import logging
 import os
-import time
 import threading
+import time
 from pathlib import Path
-from typing import Callable, Awaitable, Dict
+from typing import Awaitable, Callable, Dict
 
 from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
