@@ -100,13 +100,11 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('**/pyproject.toml') }}
 
-      - name: Install Playwright Browsers
-        run: uv run playwright install --with-deps chromium
-
       - name: Install E2E test dependencies (inside uv environment)
         run: |
           uv run python -m pip install --upgrade pip
-          uv run python -m pip install pytest pytest-playwright
+          uv run python -m pip install pytest pytest-playwright playwright
+          uv run playwright install --with-deps chromium
 
       - name: Start app
         run: |
