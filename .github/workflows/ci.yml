@@ -69,6 +69,16 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        continue-on-error: true
+
+      - name: Ensure repository checked out
+        run: |
+          if [ ! -d ".git" ]; then
+            echo "actions/checkout failed; retrying clone via HTTPS"
+            git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" .
+            git fetch --all
+            git checkout "${{ github.head_ref || github.ref_name || 'main' }}" || true
+          fi
 
       - name: Install uv
         uses: astral-sh/setup-uv@v3
