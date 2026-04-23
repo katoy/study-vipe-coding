@@ -9,8 +9,6 @@ from playwright.sync_api import Page, expect
 
 @pytest.fixture(scope="session", autouse=True)
 def live_server():
-    import threading
-    import uvicorn
 
     # Start uvicorn in a background thread to avoid external shell wrappers
     def run_server():
