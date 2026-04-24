@@ -1,0 +1,7 @@
+repos:
+- repo: https://github.com/charliermarsh/ruff-pre-commit
+  rev: v0.15.11
+  hooks:
+    - id: ruff
+      # Default: run 'ruff check' on staged files. Configure args if needed.
+      args: ["--quiet"]

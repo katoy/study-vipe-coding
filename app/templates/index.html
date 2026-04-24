@@ -45,6 +45,11 @@
         <input type="checkbox" name="bunsui_calc" id="bunsui_calc" {% if bunsui_calc %}checked{% endif %} /> 分数計算
       </label>
     </div>
+    <div style="font-size:0.85rem;color:#555;margin-bottom:8px;">循環小数は 0.{3} と入力してください。</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <button type="button" class="btn-num" onclick="appendToExpr('{')" style="padding:8px 12px;border-radius:8px;">{</button>
+      <button type="button" class="btn-num" onclick="appendToExpr('}')" style="padding:8px 12px;border-radius:8px;">}</button>
+    </div>
     <div class="buttons">
       <button class="btn-clr btn-span2" type="button" onclick="document.getElementById('expression').value='';document.getElementById('result').textContent='';">AC</button>
       <button class="btn-op" type="button" onclick="appendToExpr('%')">%</button>
@@ -81,6 +86,44 @@ function deleteLastChar() {
   if (!input.value) return;
   input.value = input.value.slice(0, -1);
   input.focus();
+}
+
+// Convert repeating-decimal notation like 0.(3) or 1.2(34) into exact rational literal (num/den)
+function convertRepeatingNotation(expr) {
+  // regex: sign(optional), whole digits (may be empty), dot, nonrepeating digits (may be empty), (repeating digits)
+  const re = /(-?)(\d*)\.(\d*)(?:\((\d+)\)|\{(\d+)\})/g;
+  return expr.replace(re, function(_, sign, whole, nonrep, rep1, rep2) {
+    // Use BigInt for exact arithmetic
+    const rep = rep1 || rep2;
+    const W = whole ? BigInt(whole) : 0n;
+    const A = nonrep || '';
+    const B = rep;
+    const mlen = A.length;
+    const nlen = B.length;
+    const ten = (n) => 10n ** BigInt(n);
+    let num, den;
+    if (mlen > 0) {
+      num = BigInt(A) * (ten(nlen) - 1n) + BigInt(B);
+      den = ten(mlen) * (ten(nlen) - 1n);
+    } else {
+      num = BigInt(B);
+      den = ten(nlen) - 1n;
+    }
+    let total = W * den + num;
+    if (sign === '-') total = -total;
+    return `(${total.toString()}/${den.toString()})`;
+  });
+}
+
+// Intercept form submission to preprocess repeating decimals before sending
+const form = document.getElementById('calc-form');
+if (form) {
+  form.addEventListener('submit', function(e) {
+    const input = document.getElementById('expression');
+    if (input && input.value) {
+      input.value = convertRepeatingNotation(input.value);
+    }
+  });
 }
 </script>
 </body>

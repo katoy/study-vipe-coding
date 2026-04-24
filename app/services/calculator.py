@@ -1,6 +1,7 @@
 import ast
 import operator
 import os
+import re
 from typing import Any, Callable, Dict
 
 _OPS: Dict[type, Callable[..., Any]] = {
@@ -61,6 +62,49 @@ def safe_eval(expr: str) -> int | float:
     if len(expr) > 100:
         raise ValueError("計算式が長すぎます")
 
+    # Preprocess repeating decimals like "0.(3)" or "1.2(34)" into rational numer/denom
+    def _replace_repeating(m: re.Match) -> str:
+        # Groups: sign, whole (may be empty), nonrep (may be empty), rep (required)
+        sign = m.group('sign') or ''
+        whole = m.group('whole') or ''
+        nonrep = m.group('nonrep') or ''
+        rep = m.group('rep')
+        W = int(whole) if whole != '' else 0
+        A = nonrep
+        B = rep
+        mlen = len(A)
+        nlen = len(B)
+        if mlen > 0:
+            num = int(A) * (10**nlen - 1) + int(B)
+            den = (10**mlen) * (10**nlen - 1)
+        else:
+            num = int(B)
+            den = (10**nlen - 1)
+        total_num = W * den + num
+        if sign == '-':
+            total_num = -total_num
+        # return as a numeric division literal that safe_eval can parse
+        return f'({total_num}/{den})'
+
+    # pattern accepting only {...} for repeating decimals
+    rep_pattern = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}"
+    expr = re.sub(rep_pattern, _replace_repeating, expr)
+
+    # Preprocess mixed fractions like "2 2/3" -> "(2 + 2/3)" and negatives "-1 1/4" -> "- (1 + 1/4)"
+    def _replace_mixed(m: re.Match) -> str:
+        sign = m.group('sign') or ''
+        whole = m.group('whole')
+        num = m.group('num')
+        den = m.group('den')
+        if sign == '-':
+            # -1 1/4 means -(1 + 1/4)
+            return f'(-({whole} + {num}/{den}))'
+        # positive or no sign
+        return f'({whole} + {num}/{den})'
+
+    pattern = r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)"
+    expr = re.sub(pattern, _replace_mixed, expr)
+
     try:
         tree = ast.parse(expr, mode="eval")
     except SyntaxError:
@@ -111,3 +155,61 @@ def float_to_mixed_fraction(value: float, max_denominator: int = 1000) -> str:
     if whole == 0:
         return f"{sign}{rem}/{den}"
     return f"{sign}{whole} {rem}/{den}"
+
+
+def fraction_to_repeating_decimal(frac, max_len: int = 50) -> str:
+    """Convert a Fraction to a decimal string, using braces for repeating part.
+
+    Examples:
+      Fraction(1,3) -> "0.{3}"
+      Fraction(8,3) -> "2.{6}"
+      Fraction(1,2) -> "0.5"  # terminating
+    """
+    from fractions import Fraction
+
+    if not isinstance(frac, Fraction):
+        frac = Fraction(frac)
+
+    num = frac.numerator
+    den = frac.denominator
+    sign = "-" if num < 0 else ""
+    num = abs(num)
+
+    whole = num // den
+    rem = num % den
+
+    if rem == 0:
+        return f"{sign}{whole}"
+
+    # Long division to produce decimal digits and detect repeating remainder
+    decimals = []
+    seen = { }
+    idx = 0
+    repeat_start = None
+    while rem != 0 and idx < max_len:
+        if rem in seen:
+            repeat_start = seen[rem]
+            break
+        seen[rem] = idx
+        rem *= 10
+        digit = rem // den
+        decimals.append(str(digit))
+        rem = rem % den
+        idx += 1
+
+    if rem == 0:
+        # terminating decimal
+        return f"{sign}{whole}." + ("".join(decimals) if decimals else "0")
+
+    # repeating — use braces instead of parentheses
+    non_rep = "".join(decimals[:repeat_start])
+    rep = "".join(decimals[repeat_start:])
+    if non_rep == "":
+        return f"{sign}{whole}.{{{rep}}}"
+    return f"{sign}{whole}.{non_rep}{{{rep}}}"
+
+
+def float_to_repeating_decimal(value: float, max_denominator: int = 1000) -> str:
+    from fractions import Fraction
+    frac = Fraction(value).limit_denominator(max_denominator)
+    return fraction_to_repeating_decimal(frac)
