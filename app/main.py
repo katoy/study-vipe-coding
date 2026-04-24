@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from app.services.calculator import safe_eval
+from app.services.calculator import float_to_mixed_fraction, safe_eval
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -79,9 +79,14 @@ async def index(request: Request) -> Response:
 
 
 @app.post("/calculate")
-async def calculate(request: Request, expression: str = Form(...)) -> Response:
+async def calculate(
+    request: Request, expression: str = Form(...), show_fraction: str | None = Form(None)
+) -> Response:
     try:
         result = safe_eval(expression)
+        # If the user requested fraction display (checkbox present), format numeric results
+        if show_fraction and isinstance(result, (int, float)):
+            result = float_to_mixed_fraction(float(result))
         return templates.TemplateResponse(
             request, "result.html", {"result": result, "expression": expression}
         )
@@ -103,12 +108,16 @@ async def calculate(request: Request, expression: str = Form(...)) -> Response:
 
 class CalcRequest(BaseModel):
     expression: str
+    show_fraction: bool = False
 
 
 @app.post("/api/calculate")
 async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
     try:
         result = safe_eval(body.expression)
+        # If client requested fraction formatting, convert numeric result to mixed-fraction string
+        if body.show_fraction and isinstance(result, (int, float)):
+            result = float_to_mixed_fraction(float(result))
         return JSONResponse(content={"result": result, "expression": body.expression})
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {body.expression}")

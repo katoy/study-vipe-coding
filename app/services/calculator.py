@@ -84,3 +84,30 @@ def safe_eval(expr: str) -> int | float:
     if isinstance(result, float) and result.is_integer():
         return int(result)
     return result
+
+
+def float_to_mixed_fraction(value: float, max_denominator: int = 1000) -> str:
+    """Convert a numeric value to a mixed fraction string (帯分数).
+
+    Examples:
+      1.75 -> "1 3/4"
+      0.5  -> "1/2"
+      2.0  -> "2"
+      -1.25 -> "-1 1/4"
+    """
+    from fractions import Fraction
+
+    # Use Fraction to obtain a rational approximation within a denominator limit
+    frac = Fraction(value).limit_denominator(max_denominator)
+    num = frac.numerator
+    den = frac.denominator
+    sign = "-" if num < 0 else ""
+    num_abs = abs(num)
+    whole = num_abs // den
+    rem = num_abs % den
+
+    if rem == 0:
+        return f"{sign}{whole}"
+    if whole == 0:
+        return f"{sign}{rem}/{den}"
+    return f"{sign}{whole} {rem}/{den}"
