@@ -113,6 +113,9 @@ class CalcRequest(BaseModel):
 async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
     try:
         result = safe_eval(body.expression)
+        # If client requested fraction formatting, convert numeric result to mixed-fraction string
+        if body.show_fraction and isinstance(result, (int, float)):
+            result = float_to_mixed_fraction(float(result))
         return JSONResponse(content={"result": result, "expression": body.expression})
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {body.expression}")
