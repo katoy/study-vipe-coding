@@ -17,7 +17,7 @@ try:
         "PYTEST_CONFTEMP: imported pytest_playwright from",
         getattr(mod, "__file__", repr(mod)),
     )
+    pytest_plugins = ["pytest_playwright"]
 except Exception as e:
     print("PYTEST_CONFTEMP: import pytest_playwright failed:", e)
-
-pytest_plugins = ["pytest_playwright"]
+    pytest_plugins = []
