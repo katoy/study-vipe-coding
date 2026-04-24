@@ -12,6 +12,21 @@ except Exception:
 
 pytestmark = pytest.mark.skipif(not HAS_PLAYWRIGHT, reason="playwright not installed")
 
+# Provide minimal placeholders so annotations / references don't fail when plugin absent
+if not HAS_PLAYWRIGHT:
+    class Page:  # type: ignore
+        pass
+
+    def expect(locator):  # type: ignore
+        class Dummy:
+            def to_have_value(self, *a, **k):
+                return None
+
+            def to_contain_text(self, *a, **k):
+                return None
+
+        return Dummy()
+
 
 @pytest.fixture(scope="session", autouse=True)
 def live_server():
