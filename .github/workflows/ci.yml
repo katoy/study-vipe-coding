@@ -114,5 +114,5 @@ jobs:
           sleep 3
 
       - name: Run Playwright tests
-        run: uv run python -m pytest tests/test_ui.py -q
+        run: uv run python -m pytest -p pytest_playwright tests/test_ui.py -q
 
