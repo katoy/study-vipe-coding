@@ -57,3 +57,24 @@ def test_float_to_mixed_fraction_examples():
     assert float_to_mixed_fraction(2.0) == "2"
     assert float_to_mixed_fraction(-1.25) == "-1 1/4"
     assert float_to_mixed_fraction(0.3333333333333, max_denominator=100) == "1/3"
+
+
+def test_non_numeric_constant_raises():
+    # Strings and other constants should not be allowed
+    with pytest.raises(ValueError):
+        safe_eval("'hi'")
+
+
+def test_name_node_raises():
+    # Names are not allowed (should raise ValueError)
+    with pytest.raises(ValueError):
+        safe_eval("abc")
+
+
+def test_unary_ops():
+    assert safe_eval("-3") == -3
+    assert safe_eval("+4") == 4
+
+
+def test_float_zero_fraction():
+    assert float_to_mixed_fraction(0.0) == "0"
