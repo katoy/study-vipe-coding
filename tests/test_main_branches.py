@@ -30,6 +30,8 @@ def test_rate_limit_middleware_client_missing():
 def test_show_fraction_non_numeric(monkeypatch):
     # Make safe_eval return a non-numeric value while show_fraction is True
     monkeypatch.setattr("app.services.calculator.safe_eval", lambda expr: "non-numeric")
+    # app.main imported safe_eval at module import time; patch that reference too
+    monkeypatch.setattr("app.main.safe_eval", lambda expr: "non-numeric")
 
     with TestClient(app) as client:
         # HTML form
