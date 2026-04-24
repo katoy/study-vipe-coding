@@ -44,29 +44,29 @@
     </div>
     <div style="font-size:0.85rem;color:#555;margin-bottom:8px;">循環小数は 0.{3} と入力してください。</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;">
-      <button type="button" class="btn-num" onclick="appendToExpr('{')" style="padding:8px 12px;border-radius:8px;">{</button>
-      <button type="button" class="btn-num" onclick="appendToExpr('}')" style="padding:8px 12px;border-radius:8px;">}</button>
+      <button type="button" class="btn-num" aria-label="左波括弧" onclick="appendToExpr('{')" style="padding:8px 12px;border-radius:8px;">{</button>
+      <button type="button" class="btn-num" aria-label="右波括弧" onclick="appendToExpr('}')" style="padding:8px 12px;border-radius:8px;">}</button>
     </div>
     <div class="buttons">
-      <button class="btn-clr btn-span2" type="button" onclick="document.getElementById('expression').value='';document.getElementById('result').textContent='';">AC</button>
-      <button class="btn-op" type="button" onclick="appendToExpr('%')">%</button>
-      <button class="btn-op" type="button" onclick="appendToExpr('/')">÷</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('7')">7</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('8')">8</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('9')">9</button>
-      <button class="btn-op" type="button" onclick="appendToExpr('*')">×</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('4')">4</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('5')">5</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('6')">6</button>
-      <button class="btn-op" type="button" onclick="appendToExpr('-')">−</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('1')">1</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('2')">2</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('3')">3</button>
-      <button class="btn-op" type="button" onclick="appendToExpr('+')">+</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('0')">0</button>
-      <button class="btn-num btn-del" type="button" onclick="deleteLastChar()">C</button>
-      <button class="btn-num" type="button" onclick="appendToExpr('.')">.</button>
-      <button class="btn-eq" type="submit">=</button>
+      <button class="btn-clr btn-span2" type="button" aria-label="全消去" onclick="document.getElementById('expression').value='';document.getElementById('result').textContent='';">AC</button>
+      <button class="btn-op" type="button" aria-label="パーセント" onclick="appendToExpr('%')">%</button>
+      <button class="btn-op" type="button" aria-label="割り算" onclick="appendToExpr('/')">÷</button>
+      <button class="btn-num" type="button" aria-label="7" onclick="appendToExpr('7')">7</button>
+      <button class="btn-num" type="button" aria-label="8" onclick="appendToExpr('8')">8</button>
+      <button class="btn-num" type="button" aria-label="9" onclick="appendToExpr('9')">9</button>
+      <button class="btn-op" type="button" aria-label="掛け算" onclick="appendToExpr('*')">×</button>
+      <button class="btn-num" type="button" aria-label="4" onclick="appendToExpr('4')">4</button>
+      <button class="btn-num" type="button" aria-label="5" onclick="appendToExpr('5')">5</button>
+      <button class="btn-num" type="button" aria-label="6" onclick="appendToExpr('6')">6</button>
+      <button class="btn-op" type="button" aria-label="引き算" onclick="appendToExpr('-')">−</button>
+      <button class="btn-num" type="button" aria-label="1" onclick="appendToExpr('1')">1</button>
+      <button class="btn-num" type="button" aria-label="2" onclick="appendToExpr('2')">2</button>
+      <button class="btn-num" type="button" aria-label="3" onclick="appendToExpr('3')">3</button>
+      <button class="btn-op" type="button" aria-label="足し算" onclick="appendToExpr('+')">+</button>
+      <button class="btn-num" type="button" aria-label="0" onclick="appendToExpr('0')">0</button>
+      <button class="btn-num btn-del" type="button" aria-label="一文字削除" onclick="deleteLastChar()">C</button>
+      <button class="btn-num" type="button" aria-label="小数点" onclick="appendToExpr('.')">.</button>
+      <button class="btn-eq" type="submit" aria-label="計算実行">=</button>
     </div>
     <div class="result" id="result" role="status" aria-live="polite" aria-atomic="true">{% if result %}{{ result }}{% endif %}</div>
   </form>
