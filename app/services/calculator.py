@@ -213,3 +213,18 @@ def float_to_repeating_decimal(value: float, max_denominator: int = 1000) -> str
     from fractions import Fraction
     frac = Fraction(value).limit_denominator(max_denominator)
     return fraction_to_repeating_decimal(frac)
+
+
+def format_result(result: int | float, show_fraction: bool) -> int | float | str:
+    """Format a calculation result for display.
+
+    If show_fraction is True, convert to mixed-fraction string.
+    Otherwise, if the result is a float with a repeating decimal, use brace notation.
+    """
+    if show_fraction and isinstance(result, (int, float)):
+        return float_to_mixed_fraction(float(result))
+    if isinstance(result, float):
+        rep = float_to_repeating_decimal(float(result))
+        if "{" in rep:
+            return rep
+    return result
