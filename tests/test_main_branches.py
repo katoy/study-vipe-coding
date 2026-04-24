@@ -1,11 +1,10 @@
 import asyncio
+
+from fastapi.testclient import TestClient
 from starlette.requests import Request
 from starlette.responses import Response
-from fastapi.testclient import TestClient
 
-import pytest
-
-from app.main import rate_limit_middleware, app
+from app.main import app, rate_limit_middleware
 
 
 def test_rate_limit_middleware_client_missing():
@@ -19,7 +18,7 @@ def test_rate_limit_middleware_client_missing():
     req = Request(scope)
 
     async def next_fn(request):
-        return Response('ok')
+        return Response("ok")
 
     # Run the middleware directly
     resp = asyncio.run(rate_limit_middleware(req, next_fn))

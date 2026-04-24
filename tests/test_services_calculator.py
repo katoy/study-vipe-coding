@@ -1,5 +1,6 @@
 import pytest
-from app.services.calculator import safe_eval, float_to_mixed_fraction
+
+from app.services.calculator import float_to_mixed_fraction, safe_eval
 
 
 def test_safe_eval_basic_arithmetic():
