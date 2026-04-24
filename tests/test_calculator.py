@@ -174,3 +174,22 @@ def test_api_show_fraction(client):
     assert res.status_code == 200
     j = res.json()
     assert j.get("result") == "1 1/2"
+
+
+def test_api_repeating_decimal_default(client):
+    # 1/3 should be represented as repeating decimal by default
+    data, code = calc(client, "1/3")
+    assert code == 200
+    assert data.get("result") == "0.(3)"
+
+
+def test_calculate_html_repeating_decimal(client):
+    res = client.post("/calculate", data={"expression": "1/3"})
+    assert res.status_code == 200
+    assert "0.(3)" in res.text
+
+
+def test_calculate_html_terminating_decimal(client):
+    res = client.post("/calculate", data={"expression": "1/2"})
+    assert res.status_code == 200
+    assert "0.5" in res.text

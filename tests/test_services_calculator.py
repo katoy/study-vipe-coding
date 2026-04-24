@@ -84,7 +84,7 @@ def test_float_zero_fraction():
 def test_safe_eval_mixed_fraction_input():
     # Support inputs like "2 2/3+3" which mean 2 + 2/3 + 3
     res = safe_eval("2 2/3+3")
-    assert abs(res - (17/3)) < 1e-9
+    assert abs(res - (17 / 3)) < 1e-9
 
 
 def test_safe_eval_negative_mixed_fraction_input():
@@ -92,3 +92,33 @@ def test_safe_eval_negative_mixed_fraction_input():
     res = safe_eval("-1 1/4 + 2")
     assert abs(res - 0.75) < 1e-9
 
+
+def test_fraction_to_repeating_decimal_examples():
+    from fractions import Fraction
+
+    from app.services.calculator import float_to_repeating_decimal, fraction_to_repeating_decimal
+
+    assert fraction_to_repeating_decimal(Fraction(1, 3)) == "0.(3)"
+    assert fraction_to_repeating_decimal(Fraction(8, 3)) == "2.(6)"
+    assert fraction_to_repeating_decimal(Fraction(1, 2)) == "0.5"
+    assert fraction_to_repeating_decimal(Fraction(-1, 3)) == "-0.(3)"
+
+    # float conversion via limit_denominator
+    assert float_to_repeating_decimal(1.0 / 3.0) == "0.(3)"
+    assert float_to_repeating_decimal(0.5) == "0.5"
+
+
+def test_fraction_to_repeating_decimal_integer_input():
+    from app.services.calculator import fraction_to_repeating_decimal
+
+    assert fraction_to_repeating_decimal(2) == "2"
+
+
+def test_fraction_to_repeating_decimal_nonrep_part():
+    from fractions import Fraction
+
+    from app.services.calculator import float_to_repeating_decimal, fraction_to_repeating_decimal
+
+    # 1/6 = 0.1666... -> 0.1(6)
+    assert fraction_to_repeating_decimal(Fraction(1, 6)) == "0.1(6)"
+    assert float_to_repeating_decimal(1.0 / 6.0) == "0.1(6)"

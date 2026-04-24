@@ -127,3 +127,61 @@ def float_to_mixed_fraction(value: float, max_denominator: int = 1000) -> str:
     if whole == 0:
         return f"{sign}{rem}/{den}"
     return f"{sign}{whole} {rem}/{den}"
+
+
+def fraction_to_repeating_decimal(frac, max_len: int = 50) -> str:
+    """Convert a Fraction to a decimal string, using parentheses for repeating part.
+
+    Examples:
+      Fraction(1,3) -> "0.(3)"
+      Fraction(8,3) -> "2.(6)"
+      Fraction(1,2) -> "0.5"  # terminating
+    """
+    from fractions import Fraction
+
+    if not isinstance(frac, Fraction):
+        frac = Fraction(frac)
+
+    num = frac.numerator
+    den = frac.denominator
+    sign = "-" if num < 0 else ""
+    num = abs(num)
+
+    whole = num // den
+    rem = num % den
+
+    if rem == 0:
+        return f"{sign}{whole}"
+
+    # Long division to produce decimal digits and detect repeating remainder
+    decimals = []
+    seen = { }
+    idx = 0
+    repeat_start = None
+    while rem != 0 and idx < max_len:
+        if rem in seen:
+            repeat_start = seen[rem]
+            break
+        seen[rem] = idx
+        rem *= 10
+        digit = rem // den
+        decimals.append(str(digit))
+        rem = rem % den
+        idx += 1
+
+    if rem == 0:
+        # terminating decimal
+        return f"{sign}{whole}." + ("".join(decimals) if decimals else "0")
+
+    # repeating
+    non_rep = "".join(decimals[:repeat_start])
+    rep = "".join(decimals[repeat_start:])
+    if non_rep == "":
+        return f"{sign}{whole}.({rep})"
+    return f"{sign}{whole}.{non_rep}({rep})"
+
+
+def float_to_repeating_decimal(value: float, max_denominator: int = 1000) -> str:
+    from fractions import Fraction
+    frac = Fraction(value).limit_denominator(max_denominator)
+    return fraction_to_repeating_decimal(frac)
