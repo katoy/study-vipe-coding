@@ -86,9 +86,10 @@ function deleteLastChar() {
 // Convert repeating-decimal notation like 0.(3) or 1.2(34) into exact rational literal (num/den)
 function convertRepeatingNotation(expr) {
   // regex: sign(optional), whole digits (may be empty), dot, nonrepeating digits (may be empty), (repeating digits)
-  const re = /(-?)(\d*)\.(\d*)\((\d+)\)/g;
-  return expr.replace(re, function(_, sign, whole, nonrep, rep) {
+  const re = /(-?)(\d*)\.(\d*)(?:\((\d+)\)|\{(\d+)\})/g;
+  return expr.replace(re, function(_, sign, whole, nonrep, rep1, rep2) {
     // Use BigInt for exact arithmetic
+    const rep = rep1 || rep2;
     const W = whole ? BigInt(whole) : 0n;
     const A = nonrep || '';
     const B = rep;

@@ -86,9 +86,24 @@ def safe_eval(expr: str) -> int | float:
         # return as a numeric division literal that safe_eval can parse
         return f'({total_num}/{den})'
 
-    # pattern: sign (opt), whole (opt).nonrep (opt) (rep)
-    rep_pattern = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\((?P<rep>\d+)\)"
-    expr = re.sub(rep_pattern, _replace_repeating, expr)
+    # pattern accepting (...) or {...}
+    rep_pattern = (
+        r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)"
+        r"(?:\((?P<rep1>\d+)\)|\{(?P<rep2>\d+)\})"
+    )
+
+    def _rep_wrapper(m: re.Match) -> str:
+        # normalize rep from either group
+        rep = m.group('rep1') or m.group('rep2')
+        # Build a tiny object with .group for _replace_repeating
+        class M:
+            def __init__(self, sign, whole, nonrep, rep):
+                self._d = {'sign': sign, 'whole': whole, 'nonrep': nonrep, 'rep': rep}
+            def group(self, name):
+                return self._d.get(name)
+        return _replace_repeating(M(m.group('sign'), m.group('whole'), m.group('nonrep'), rep))
+
+    expr = re.sub(rep_pattern, _rep_wrapper, expr)
 
     # Preprocess mixed fractions like "2 2/3" -> "(2 + 2/3)" and negatives "-1 1/4" -> "- (1 + 1/4)"
     def _replace_mixed(m: re.Match) -> str:
@@ -158,11 +173,11 @@ def float_to_mixed_fraction(value: float, max_denominator: int = 1000) -> str:
 
 
 def fraction_to_repeating_decimal(frac, max_len: int = 50) -> str:
-    """Convert a Fraction to a decimal string, using parentheses for repeating part.
+    """Convert a Fraction to a decimal string, using braces for repeating part.
 
     Examples:
-      Fraction(1,3) -> "0.(3)"
-      Fraction(8,3) -> "2.(6)"
+      Fraction(1,3) -> "0.{3}"
+      Fraction(8,3) -> "2.{6}"
       Fraction(1,2) -> "0.5"  # terminating
     """
     from fractions import Fraction
@@ -201,12 +216,12 @@ def fraction_to_repeating_decimal(frac, max_len: int = 50) -> str:
         # terminating decimal
         return f"{sign}{whole}." + ("".join(decimals) if decimals else "0")
 
-    # repeating
+    # repeating — use braces instead of parentheses
     non_rep = "".join(decimals[:repeat_start])
     rep = "".join(decimals[repeat_start:])
     if non_rep == "":
-        return f"{sign}{whole}.({rep})"
-    return f"{sign}{whole}.{non_rep}({rep})"
+        return f"{sign}{whole}.{{{rep}}}"
+    return f"{sign}{whole}.{non_rep}{{{rep}}}"
 
 
 def float_to_repeating_decimal(value: float, max_denominator: int = 1000) -> str:

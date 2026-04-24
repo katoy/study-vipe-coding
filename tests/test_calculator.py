@@ -180,13 +180,13 @@ def test_api_repeating_decimal_default(client):
     # 1/3 should be represented as repeating decimal by default
     data, code = calc(client, "1/3")
     assert code == 200
-    assert data.get("result") == "0.(3)"
+    assert data.get("result") == "0.{3}"
 
 
 def test_calculate_html_repeating_decimal(client):
     res = client.post("/calculate", data={"expression": "1/3"})
     assert res.status_code == 200
-    assert "0.(3)" in res.text
+    assert "0.{3}" in res.text
 
 
 def test_calculate_html_terminating_decimal(client):
@@ -197,6 +197,6 @@ def test_calculate_html_terminating_decimal(client):
 
 def test_repeating_decimal_input_evaluation(client):
     # UI may send expressions like "0.(3)*9" — ensure server accepts and evaluates
-    data, code = calc(client, "0.(3)*9")
+    data, code = calc(client, "0.{3}*9")
     assert code == 200
     assert data.get("result") == 3

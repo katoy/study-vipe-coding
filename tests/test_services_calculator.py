@@ -98,13 +98,13 @@ def test_fraction_to_repeating_decimal_examples():
 
     from app.services.calculator import float_to_repeating_decimal, fraction_to_repeating_decimal
 
-    assert fraction_to_repeating_decimal(Fraction(1, 3)) == "0.(3)"
-    assert fraction_to_repeating_decimal(Fraction(8, 3)) == "2.(6)"
+    assert fraction_to_repeating_decimal(Fraction(1, 3)) == "0.{3}"
+    assert fraction_to_repeating_decimal(Fraction(8, 3)) == "2.{6}"
     assert fraction_to_repeating_decimal(Fraction(1, 2)) == "0.5"
-    assert fraction_to_repeating_decimal(Fraction(-1, 3)) == "-0.(3)"
+    assert fraction_to_repeating_decimal(Fraction(-1, 3)) == "-0.{3}"
 
     # float conversion via limit_denominator
-    assert float_to_repeating_decimal(1.0 / 3.0) == "0.(3)"
+    assert float_to_repeating_decimal(1.0 / 3.0) == "0.{3}"
     assert float_to_repeating_decimal(0.5) == "0.5"
 
 
@@ -129,5 +129,5 @@ def test_fraction_to_repeating_decimal_nonrep_part():
     from app.services.calculator import float_to_repeating_decimal, fraction_to_repeating_decimal
 
     # 1/6 = 0.1666... -> 0.1(6)
-    assert fraction_to_repeating_decimal(Fraction(1, 6)) == "0.1(6)"
-    assert float_to_repeating_decimal(1.0 / 6.0) == "0.1(6)"
+    assert fraction_to_repeating_decimal(Fraction(1, 6)) == "0.1{6}"
+    assert float_to_repeating_decimal(1.0 / 6.0) == "0.1{6}"

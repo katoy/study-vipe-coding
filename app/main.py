@@ -90,9 +90,9 @@ async def calculate(
         elif isinstance(result, float):
             # For floats, prefer repeating-decimal notation when appropriate
             rep = float_to_repeating_decimal(float(result))
-            # fraction_to_repeating_decimal returns a string; if that string contains parentheses
+            # fraction_to_repeating_decimal returns a string; if that string contains braces
             # it's a repeating representation — use it. Otherwise leave numeric (terminating)
-            if "(" in rep:
+            if "{" in rep:
                 result = rep
         return templates.TemplateResponse(
             request, "result.html", {"result": result, "expression": expression}
@@ -127,7 +127,7 @@ async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
             result = float_to_mixed_fraction(float(result))
         elif isinstance(result, float):
             rep = float_to_repeating_decimal(float(result))
-            if "(" in rep:
+            if "{" in rep:
                 result = rep
         return JSONResponse(content={"result": result, "expression": body.expression})
     except ZeroDivisionError:
