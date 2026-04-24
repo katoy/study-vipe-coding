@@ -1,6 +1,7 @@
 import ast
 import operator
 import os
+import re
 from typing import Any, Callable, Dict
 
 _OPS: Dict[type, Callable[..., Any]] = {
@@ -60,6 +61,21 @@ def safe_eval(expr: str) -> int | float:
     # Basic input length guard
     if len(expr) > 100:
         raise ValueError("計算式が長すぎます")
+
+    # Preprocess mixed fractions like "2 2/3" -> "(2 + 2/3)" and negatives "-1 1/4" -> "- (1 + 1/4)"
+    def _replace_mixed(m: re.Match) -> str:
+        sign = m.group('sign') or ''
+        whole = m.group('whole')
+        num = m.group('num')
+        den = m.group('den')
+        if sign == '-':
+            # -1 1/4 means -(1 + 1/4)
+            return f'(-({whole} + {num}/{den}))'
+        # positive or no sign
+        return f'({whole} + {num}/{den})'
+
+    pattern = r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)"
+    expr = re.sub(pattern, _replace_mixed, expr)
 
     try:
         tree = ast.parse(expr, mode="eval")
