@@ -154,3 +154,23 @@ def test_calculate_html_invalid_expression(client):
     res = client.post("/calculate", data={"expression": "abc+def"})
     assert res.status_code == 200
     assert "計算式が正しくありません" in res.text
+
+
+def test_calculate_html_show_fraction(client):
+    # POST form with show_fraction checkbox present
+    res = client.post("/calculate", data={"expression": "3/2", "show_fraction": "on"})
+    assert res.status_code == 200
+    assert "1 1/2" in res.text
+
+
+def test_api_show_fraction(client):
+    data, code = calc(client, "3/2")
+    # default: no fraction
+    assert code == 200
+    assert data.get("result") == 1.5
+
+    # request fraction formatting via API
+    res = client.post("/api/calculate", json={"expression": "3/2", "show_fraction": True})
+    assert res.status_code == 200
+    j = res.json()
+    assert j.get("result") == "1 1/2"
