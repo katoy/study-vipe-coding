@@ -110,9 +110,9 @@ jobs:
 
       - name: Start app
         run: |
-          uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+          uv run python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 &
           sleep 3
 
       - name: Run Playwright tests
-        run: uv run pytest tests/test_ui.py -q
+        run: uv run python -m pytest tests/test_ui.py -q
 
