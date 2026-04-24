@@ -62,6 +62,34 @@ def safe_eval(expr: str) -> int | float:
     if len(expr) > 100:
         raise ValueError("計算式が長すぎます")
 
+    # Preprocess repeating decimals like "0.(3)" or "1.2(34)" into rational numer/denom
+    def _replace_repeating(m: re.Match) -> str:
+        # Groups: sign, whole (may be empty), nonrep (may be empty), rep (required)
+        sign = m.group('sign') or ''
+        whole = m.group('whole') or ''
+        nonrep = m.group('nonrep') or ''
+        rep = m.group('rep')
+        W = int(whole) if whole != '' else 0
+        A = nonrep
+        B = rep
+        mlen = len(A)
+        nlen = len(B)
+        if mlen > 0:
+            num = int(A) * (10**nlen - 1) + int(B)
+            den = (10**mlen) * (10**nlen - 1)
+        else:
+            num = int(B)
+            den = (10**nlen - 1)
+        total_num = W * den + num
+        if sign == '-':
+            total_num = -total_num
+        # return as a numeric division literal that safe_eval can parse
+        return f'({total_num}/{den})'
+
+    # pattern: sign (opt), whole (opt).nonrep (opt) (rep)
+    rep_pattern = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\((?P<rep>\d+)\)"
+    expr = re.sub(rep_pattern, _replace_repeating, expr)
+
     # Preprocess mixed fractions like "2 2/3" -> "(2 + 2/3)" and negatives "-1 1/4" -> "- (1 + 1/4)"
     def _replace_mixed(m: re.Match) -> str:
         sign = m.group('sign') or ''

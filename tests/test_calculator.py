@@ -193,3 +193,10 @@ def test_calculate_html_terminating_decimal(client):
     res = client.post("/calculate", data={"expression": "1/2"})
     assert res.status_code == 200
     assert "0.5" in res.text
+
+
+def test_repeating_decimal_input_evaluation(client):
+    # UI may send expressions like "0.(3)*9" — ensure server accepts and evaluates
+    data, code = calc(client, "0.(3)*9")
+    assert code == 200
+    assert data.get("result") == 3
