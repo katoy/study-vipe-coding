@@ -24,9 +24,17 @@
 <body>
 <div class="calculator">
   <h1>計算機</h1>
-  <form id="calc-form" hx-post="/calculate" hx-target="#result" hx-swap="outerHTML" method="post">
+  <form id="calc-form" role="form" aria-label="計算機フォーム" hx-post="/calculate" hx-target="#result" hx-swap="outerHTML" method="post" novalidate>
     <div class="display">
-      <input type="text" name="expression" id="expression" value="{{ expression or '' }}" style="width:100%;font-size:1.6rem;background:transparent;border:none;color:#eee;outline:none;text-align:right;" autocomplete="off" />
+      <input type="text" name="expression" id="expression" value="{{ expression or '' }}" aria-label="式入力" placeholder="式を入力" style="width:100%;font-size:1.6rem;background:transparent;border:none;color:#eee;outline:none;text-align:right;" autocomplete="off" />
+    </div>
+    <div class="options" style="display:flex;justify-content:space-between;gap:8px;margin:8px 0 12px;">
+      <label style="font-size:0.95rem;color:#333;display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" name="show_fraction" id="show_fraction" {% if show_fraction %}checked{% endif %} /> 分数表示
+      </label>
+      <label style="font-size:0.95rem;color:#333;display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" name="bunsui_calc" id="bunsui_calc" {% if bunsui_calc %}checked{% endif %} /> 分水計算
+      </label>
     </div>
     <div class="buttons">
       <button class="btn-clr btn-span2" type="button" onclick="document.getElementById('expression').value='';document.getElementById('result').textContent='';">AC</button>
@@ -48,7 +56,7 @@
       <button class="btn-num" type="button" onclick="appendToExpr('.')">.</button>
       <button class="btn-eq" type="submit">=</button>
     </div>
-    <div class="result" id="result">{% if result %}{{ result }}{% endif %}</div>
+    <div class="result" id="result" role="status" aria-live="polite" aria-atomic="true">{% if result %}{{ result }}{% endif %}</div>
   </form>
 </div>
 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
