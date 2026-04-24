@@ -86,24 +86,9 @@ def safe_eval(expr: str) -> int | float:
         # return as a numeric division literal that safe_eval can parse
         return f'({total_num}/{den})'
 
-    # pattern accepting (...) or {...}
-    rep_pattern = (
-        r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)"
-        r"(?:\((?P<rep1>\d+)\)|\{(?P<rep2>\d+)\})"
-    )
-
-    def _rep_wrapper(m: re.Match) -> str:
-        # normalize rep from either group
-        rep = m.group('rep1') or m.group('rep2')
-        # Build a tiny object with .group for _replace_repeating
-        class M:
-            def __init__(self, sign, whole, nonrep, rep):
-                self._d = {'sign': sign, 'whole': whole, 'nonrep': nonrep, 'rep': rep}
-            def group(self, name):
-                return self._d.get(name)
-        return _replace_repeating(M(m.group('sign'), m.group('whole'), m.group('nonrep'), rep))
-
-    expr = re.sub(rep_pattern, _rep_wrapper, expr)
+    # pattern accepting only {...} for repeating decimals
+    rep_pattern = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}"
+    expr = re.sub(rep_pattern, _replace_repeating, expr)
 
     # Preprocess mixed fractions like "2 2/3" -> "(2 + 2/3)" and negatives "-1 1/4" -> "- (1 + 1/4)"
     def _replace_mixed(m: re.Match) -> str:

@@ -109,11 +109,11 @@ def test_fraction_to_repeating_decimal_examples():
 
 
 def test_safe_eval_repeating_nonrep_part():
-    # 1.2(34) should be parsed correctly
-    res = safe_eval("1.2(34)")
+    # 1.2{34} should be parsed correctly (parentheses notation is invalid)
+    res = safe_eval("1.2{34}")
     assert abs(res - (611 / 495)) < 1e-9
     # negative
-    res2 = safe_eval("-1.2(34)")
+    res2 = safe_eval("-1.2{34}")
     assert abs(res2 - (-(611 / 495))) < 1e-9
 
 
