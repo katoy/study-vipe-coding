@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from app.services.calculator import float_to_mixed_fraction, float_to_repeating_decimal, safe_eval
+from app.services.calculator import format_result, safe_eval
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -65,6 +65,13 @@ async def rate_limit_middleware(
             entry = _rate_store.get(client_host)
             if entry is None or now - entry["start"] >= _RATE_LIMIT_WINDOW:
                 _rate_store[client_host] = {"count": 1, "start": now}
+                # Sweep expired entries to prevent unbounded memory growth.
+                # Runs at most once per window per active client, so overhead is low.
+                expired = [
+                    k for k, v in _rate_store.items() if now - v["start"] >= _RATE_LIMIT_WINDOW
+                ]
+                for k in expired:
+                    del _rate_store[k]
             else:
                 if entry["count"] >= _RATE_LIMIT_PER_MIN:
                     return JSONResponse(status_code=429, content={"error": "Too many requests"})
@@ -83,29 +90,25 @@ async def calculate(
     request: Request, expression: str = Form(...), show_fraction: str | None = Form(None)
 ) -> Response:
     try:
-        result = safe_eval(expression)
-        # If the user requested fraction display (checkbox present), format numeric results
-        if show_fraction and isinstance(result, (int, float)):
-            result = float_to_mixed_fraction(float(result))
-        elif isinstance(result, float):
-            # For floats, prefer repeating-decimal notation when appropriate
-            rep = float_to_repeating_decimal(float(result))
-            # fraction_to_repeating_decimal returns a string; if that string contains braces
-            # it's a repeating representation — use it. Otherwise leave numeric (terminating)
-            if "{" in rep:
-                result = rep
+        result = format_result(safe_eval(expression), bool(show_fraction))
         return templates.TemplateResponse(
-            request, "result.html", {"result": result, "expression": expression}
+            request,
+            "result.html",
+            {"result": result, "is_error": False, "expression": expression},
         )
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {expression}")
         return templates.TemplateResponse(
-            request, "result.html", {"result": "0で割ることはできません", "expression": expression}
+            request,
+            "result.html",
+            {"result": "0で割ることはできません", "is_error": True, "expression": expression},
         )
     except (SyntaxError, ValueError) as e:
         logger.warning(f"Invalid expression: {expression} - {e}")
         return templates.TemplateResponse(
-            request, "result.html", {"result": "計算式が正しくありません", "expression": expression}
+            request,
+            "result.html",
+            {"result": "計算式が正しくありません", "is_error": True, "expression": expression},
         )
     except Exception as e:
         logger.error(f"Unexpected error calculating {expression}: {e}", exc_info=True)
@@ -121,14 +124,7 @@ class CalcRequest(BaseModel):
 @app.post("/api/calculate")
 async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
     try:
-        result = safe_eval(body.expression)
-        # If client requested fraction formatting, convert numeric result to mixed-fraction string
-        if body.show_fraction and isinstance(result, (int, float)):
-            result = float_to_mixed_fraction(float(result))
-        elif isinstance(result, float):
-            rep = float_to_repeating_decimal(float(result))
-            if "{" in rep:
-                result = rep
+        result = format_result(safe_eval(body.expression), body.show_fraction)
         return JSONResponse(content={"result": result, "expression": body.expression})
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {body.expression}")

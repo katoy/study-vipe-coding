@@ -1,4 +1,4 @@
-{% if 'できません' in result|string or '正しくありません' in result|string %}
+{% if is_error %}
 <div class="result" id="result" role="status" aria-live="polite" aria-atomic="true">{{ result }}</div>
 {% else %}
 <input type="text" name="expression" id="expression" value="{{ result }}" aria-label="式入力" placeholder="式を入力" style="width:100%;font-size:1.6rem;background:transparent;border:none;color:#eee;outline:none;text-align:right;" autocomplete="off" hx-swap-oob="true" />

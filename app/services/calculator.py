@@ -4,6 +4,16 @@ import os
 import re
 from typing import Any, Callable, Dict
 
+
+def _safe_pow(left: int | float, right: int | float) -> int | float:
+    """べき乗演算のガード付き実装。指数・底が大きすぎる場合は ValueError を送出する。"""
+    if not isinstance(right, int) or abs(right) > 20:
+        raise ValueError("べき乗の指数が大きすぎます")
+    if abs(left) > 1e6:
+        raise ValueError("べき乗の底が大きすぎます")
+    return operator.pow(left, right)  # type: ignore[return-value]
+
+
 _OPS: Dict[type, Callable[..., Any]] = {
     ast.Add: operator.add,
     ast.Sub: operator.sub,
@@ -23,13 +33,6 @@ def _eval_node(node: ast.expr, ops: Dict[type, Callable[..., Any]]) -> int | flo
     if isinstance(node, ast.BinOp) and type(node.op) in ops:
         left = _eval_node(node.left, ops)
         right = _eval_node(node.right, ops)
-        # Special guarding for power operator to avoid huge results
-        if type(node.op) is ast.Pow:
-            # Only allow reasonably small integer exponents
-            if not isinstance(right, int) or abs(right) > 20:
-                raise ValueError("べき乗の指数が大きすぎます")
-            if abs(left) > 1e6:
-                raise ValueError("べき乗の底が大きすぎます")
         return ops[type(node.op)](left, right)  # type: ignore
     raise ValueError("不正な式")
 
@@ -114,10 +117,11 @@ def safe_eval(expr: str) -> int | float:
     _check_complexity(tree)
 
     # Build operator mapping per-invocation. Power operator is opt-in via ALLOW_POW env var.
+    # _safe_pow enforces limits on exponent and base to prevent huge results.
     ops = _OPS.copy()
     allow_pow = os.getenv("ALLOW_POW", "0").lower() in ("1", "true", "yes")
     if allow_pow:
-        ops[ast.Pow] = operator.pow
+        ops[ast.Pow] = _safe_pow
 
     try:
         result = _eval_node(tree.body, ops)
@@ -213,3 +217,18 @@ def float_to_repeating_decimal(value: float, max_denominator: int = 1000) -> str
     from fractions import Fraction
     frac = Fraction(value).limit_denominator(max_denominator)
     return fraction_to_repeating_decimal(frac)
+
+
+def format_result(result: int | float, show_fraction: bool) -> int | float | str:
+    """Format a calculation result for display.
+
+    If show_fraction is True, convert to mixed-fraction string.
+    Otherwise, if the result is a float with a repeating decimal, use brace notation.
+    """
+    if show_fraction and isinstance(result, (int, float)):
+        return float_to_mixed_fraction(float(result))
+    if isinstance(result, float):
+        rep = float_to_repeating_decimal(float(result))
+        if "{" in rep:
+            return rep
+    return result
