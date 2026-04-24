@@ -4,8 +4,10 @@ import time
 import httpx
 import pytest
 import uvicorn
+
 try:
     from playwright.sync_api import Page, expect
+
     HAS_PLAYWRIGHT = True
 except Exception:
     HAS_PLAYWRIGHT = False
@@ -14,6 +16,7 @@ pytestmark = pytest.mark.skipif(not HAS_PLAYWRIGHT, reason="playwright not insta
 
 # Provide minimal placeholders so annotations / references don't fail when plugin absent
 if not HAS_PLAYWRIGHT:
+
     class Page:  # type: ignore
         pass
 

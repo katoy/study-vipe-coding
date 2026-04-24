@@ -79,7 +79,9 @@ async def index(request: Request) -> Response:
 
 
 @app.post("/calculate")
-async def calculate(request: Request, expression: str = Form(...), show_fraction: str | None = Form(None)) -> Response:
+async def calculate(
+    request: Request, expression: str = Form(...), show_fraction: str | None = Form(None)
+) -> Response:
     try:
         result = safe_eval(expression)
         # If the user requested fraction display (checkbox present), format numeric results
