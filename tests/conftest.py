@@ -3,6 +3,7 @@ import sys
 from importlib import metadata
 
 print("PYTEST_CONFTEMP: sys.path length:", len(sys.path))
+
 try:
     eps = metadata.entry_points()
     pytest_eps = [ep for ep in eps.get("pytest11", [])]
