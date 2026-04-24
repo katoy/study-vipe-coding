@@ -1,8 +1,8 @@
 import logging
 import os
-from pathlib import Path
 import threading
 import time
+from pathlib import Path
 from typing import Awaitable, Callable, Dict
 
 from fastapi import FastAPI, Form, Request
@@ -12,7 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from app.services.calculator import safe_eval, float_to_mixed_fraction
+from app.services.calculator import float_to_mixed_fraction, safe_eval
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
