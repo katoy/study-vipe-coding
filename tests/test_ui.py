@@ -1,10 +1,10 @@
-import time
 import threading
-import uvicorn
+import time
 
 import httpx
 import pytest
 from playwright.sync_api import Page, expect
+import uvicorn
 
 
 @pytest.fixture(scope="session", autouse=True)
