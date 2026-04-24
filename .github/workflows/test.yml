@@ -11,10 +11,12 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+      - name: Install Python (apt)
+        run: |
+          apt-get update
+          apt-get install -y python3.11 python3.11-venv python3-pip
+          ln -sf /usr/bin/python3.11 /usr/local/bin/python
+          python -m pip install -U pip
       - name: Install dependencies
         run: |
           python -m pip install -U pip
