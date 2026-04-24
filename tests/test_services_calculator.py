@@ -79,3 +79,16 @@ def test_unary_ops():
 
 def test_float_zero_fraction():
     assert float_to_mixed_fraction(0.0) == "0"
+
+
+def test_safe_eval_mixed_fraction_input():
+    # Support inputs like "2 2/3+3" which mean 2 + 2/3 + 3
+    res = safe_eval("2 2/3+3")
+    assert abs(res - (17/3)) < 1e-9
+
+
+def test_safe_eval_negative_mixed_fraction_input():
+    # Negative mixed fraction like "-1 1/4 + 2" should be parsed as -(1 + 1/4) + 2
+    res = safe_eval("-1 1/4 + 2")
+    assert abs(res - 0.75) < 1e-9
+
