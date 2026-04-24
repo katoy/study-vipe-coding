@@ -95,17 +95,23 @@ async def calculate(
             if "{" in rep:
                 result = rep
         return templates.TemplateResponse(
-            request, "result.html", {"result": result, "expression": expression}
+            request,
+            "result.html",
+            {"result": result, "is_error": False, "expression": expression},
         )
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {expression}")
         return templates.TemplateResponse(
-            request, "result.html", {"result": "0で割ることはできません", "expression": expression}
+            request,
+            "result.html",
+            {"result": "0で割ることはできません", "is_error": True, "expression": expression},
         )
     except (SyntaxError, ValueError) as e:
         logger.warning(f"Invalid expression: {expression} - {e}")
         return templates.TemplateResponse(
-            request, "result.html", {"result": "計算式が正しくありません", "expression": expression}
+            request,
+            "result.html",
+            {"result": "計算式が正しくありません", "is_error": True, "expression": expression},
         )
     except Exception as e:
         logger.error(f"Unexpected error calculating {expression}: {e}", exc_info=True)
