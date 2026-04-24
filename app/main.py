@@ -65,6 +65,13 @@ async def rate_limit_middleware(
             entry = _rate_store.get(client_host)
             if entry is None or now - entry["start"] >= _RATE_LIMIT_WINDOW:
                 _rate_store[client_host] = {"count": 1, "start": now}
+                # Sweep expired entries to prevent unbounded memory growth.
+                # Runs at most once per window per active client, so overhead is low.
+                expired = [
+                    k for k, v in _rate_store.items() if now - v["start"] >= _RATE_LIMIT_WINDOW
+                ]
+                for k in expired:
+                    del _rate_store[k]
             else:
                 if entry["count"] >= _RATE_LIMIT_PER_MIN:
                     return JSONResponse(status_code=429, content={"error": "Too many requests"})
