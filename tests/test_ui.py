@@ -4,7 +4,13 @@ import time
 import httpx
 import pytest
 import uvicorn
-from playwright.sync_api import Page, expect
+try:
+    from playwright.sync_api import Page, expect
+    HAS_PLAYWRIGHT = True
+except Exception:
+    HAS_PLAYWRIGHT = False
+
+pytestmark = pytest.mark.skipif(not HAS_PLAYWRIGHT, reason="playwright not installed")
 
 
 @pytest.fixture(scope="session", autouse=True)
