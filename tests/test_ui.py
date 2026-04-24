@@ -3,8 +3,8 @@ import time
 
 import httpx
 import pytest
-from playwright.sync_api import Page, expect
 import uvicorn
+from playwright.sync_api import Page, expect
 
 
 @pytest.fixture(scope="session", autouse=True)
