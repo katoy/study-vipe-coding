@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <style>
+      .bg { fill: #f6f7fb; }
+      .header { fill: #2b6cb0; }
+      .panel { fill: #ffffff; stroke: #d1d5db; stroke-width:1; }
+      .muted { fill: #6b7280; font-size:14px; font-family: Arial, Helvetica, sans-serif; }
+      .title { fill: #ffffff; font-size:28px; font-family: Arial, Helvetica, sans-serif; }
+      .label { fill: #111827; font-size:18px; font-family: Arial, Helvetica, sans-serif; }
+      .inputText { fill: #374151; font-size:18px; font-family: Arial, Helvetica, sans-serif; }
+      .resultMain { fill: #111827; font-size:24px; font-family: Arial, Helvetica, sans-serif; }
+      .btn { fill: #10b981; stroke: #059669; }
+      .btnText { fill: white; font-size:18px; font-family: Arial, Helvetica, sans-serif; }
+      .historyItem { fill: #111827; font-size:14px; font-family: Arial, Helvetica, sans-serif; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="800" />
+  <!-- Header -->
+  <rect class="header" x="0" y="0" width="1200" height="72" />
+  <text x="24" y="46" class="title">計算機（循環小数・分数対応モック）</text>
+
+  <!-- Left history panel -->
+  <rect class="panel" x="24" y="96" width="296" height="584" rx="6" />
+  <text x="40" y="128" class="label">履歴</text>
+  <text x="40" y="162" class="historyItem">1) 1/3 + 1/6 = 0.5 (1/2)</text>
+  <text x="40" y="186" class="historyItem">2) 0.{3} * 3 = 1</text>
+  <text x="40" y="210" class="historyItem">3) 7/6 = 1.1{6} (7/6)</text>
+  <text x="40" y="240" class="muted">最近の履歴をここに表示します。コピーボタン付き。</text>
+
+  <!-- Main input area -->
+  <text x="360" y="120" class="label">式を入力</text>
+  <rect class="panel" x="360" y="128" width="740" height="42" rx="6" />
+  <text x="376" y="156" class="inputText">1/3 + 0.{3}</text>
+
+  <!-- Controls -->
+  <text x="360" y="200" class="label">表示形式</text>
+  <rect class="panel" x="460" y="184" width="200" height="34" rx="4" />
+  <text x="472" y="206" class="inputText">自動</text>
+
+  <text x="360" y="244" class="label">小数精度</text>
+  <rect class="panel" x="460" y="228" width="100" height="34" rx="4" />
+  <text x="476" y="252" class="inputText">10</text>
+
+  <rect class="panel" x="360" y="276" width="20" height="20" rx="3" />
+  <text x="392" y="292" class="label">分数併記</text>
+
+  <!-- Calculate button -->
+  <rect class="btn" x="920" y="220" width="180" height="50" rx="6" />
+  <text x="980" y="253" class="btnText">計算</text>
+
+  <!-- Result area -->
+  <text x="360" y="340" class="label">結果</text>
+  <rect class="panel" x="360" y="372" width="740" height="148" rx="6" />
+  <text x="376" y="410" class="resultMain">1/2</text>
+  <text x="376" y="446" class="muted">0.5 (1/2)</text>
+
+  <!-- Help note -->
+  <text x="24" y="732" class="muted">注: 循環小数は中括弧で指定します。例: 0.{3} = 0.333...</text>
+
+  <!-- Footer small controls -->
+  <text x="360" y="540" class="muted">フォーマット切替はAPIの"format"パラメータに対応（automatic/fraction/decimal/repeating）</text>
+
+</svg>

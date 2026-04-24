@@ -1,0 +1,7 @@
+# CODEOWNERS
+# Files in the repo and their owners
+/docs/ @katoy
+/.github/ @katoy
+/app/ @katoy
+/tests/ @katoy
+README.md @katoy
