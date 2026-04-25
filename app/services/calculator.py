@@ -52,7 +52,7 @@ class Calculator:
             right = self._eval_node(node.right, ops)
             if type(node.op) is ast.Div:
                 if isinstance(left, Fraction) or isinstance(right, Fraction):
-                    return Fraction(left) / Fraction(right)  # type: ignore[arg-type]
+                    return Fraction(left) / Fraction(right)
                 if isinstance(left, int) and isinstance(right, int):
                     return Fraction(left, right)
                 return ops[type(node.op)](left, right)  # type: ignore
