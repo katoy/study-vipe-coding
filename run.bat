@@ -1,6 +1,6 @@
 @echo off
-echo Building Docker image...
-docker build -t calculator-app .
+echo Building Docker image (runtime/base stage)...
+docker build --target base -t calculator-app .
 if %errorlevel% neq 0 (
     echo Failed to build Docker image.
     pause

@@ -2,8 +2,9 @@ import logging
 import os
 import threading
 import time
+from fractions import Fraction
 from pathlib import Path
-from typing import Awaitable, Callable, Dict
+from typing import Any, Awaitable, Callable, Dict
 
 from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,15 +13,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from app.services.calculator import format_result, safe_eval
+from app.services.calculator import Calculator
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
-
-# CORS: allow origins controlled via ALLOW_ORIGINS env (comma-separated).
-# Default to http://localhost:8000 for development.
 _allow_origins = os.getenv("ALLOW_ORIGINS")
 if _allow_origins:
     allow_origins = [o.strip() for o in _allow_origins.split(",") if o.strip()]
@@ -38,12 +36,7 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
-# Disable Jinja2 internal template caching to avoid unhashable globals issues in some environments
-# (In production, consider configuring a proper cache or ensuring template globals are hashable.)
 templates.env.cache = {}
-
-# Simple in-memory rate limiting for API endpoints. Configurable via RATE_LIMIT_PER_MIN env var.
-# This is intentionally simple and suitable for single-process deployments or dev/test harnesses.
 
 _RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "60"))
 _RATE_LIMIT_WINDOW = 60  # seconds
@@ -55,7 +48,6 @@ _rate_store: Dict[str, Dict[str, float | int]] = {}
 async def rate_limit_middleware(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
-    # Apply only to API endpoints to avoid interfering with template loads
     if request.url.path.startswith("/api/"):
         client_host = "unknown"
         if request.client and request.client.host:
@@ -65,8 +57,6 @@ async def rate_limit_middleware(
             entry = _rate_store.get(client_host)
             if entry is None or now - entry["start"] >= _RATE_LIMIT_WINDOW:
                 _rate_store[client_host] = {"count": 1, "start": now}
-                # Sweep expired entries to prevent unbounded memory growth.
-                # Runs at most once per window per active client, so overhead is low.
                 expired = [
                     k for k, v in _rate_store.items() if now - v["start"] >= _RATE_LIMIT_WINDOW
                 ]
@@ -80,6 +70,10 @@ async def rate_limit_middleware(
     return response
 
 
+# Create a module-level calculator instance with default settings
+calc = Calculator()
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> Response:
     return templates.TemplateResponse(request, "index.html", {"result": None, "expression": ""})
@@ -90,12 +84,17 @@ async def calculate(
     request: Request, expression: str = Form(...), show_fraction: str | None = Form(None)
 ) -> Response:
     try:
-        result = format_result(safe_eval(expression), bool(show_fraction))
-        return templates.TemplateResponse(
-            request,
-            "result.html",
-            {"result": result, "is_error": False, "expression": expression},
-        )
+        value = calc.safe_eval(expression)
+        result = calc.format_result(value, bool(show_fraction))
+        context: Dict[str, Any] = {
+            "value": value,
+            "result": result,
+            "is_error": False,
+            "expression": expression,
+        }
+        if isinstance(value, (int, float, Fraction)):
+            context["fraction_parts"] = calc.mixed_fraction_parts(value)
+        return templates.TemplateResponse(request, "result.html", context)
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {expression}")
         return templates.TemplateResponse(
@@ -112,7 +111,6 @@ async def calculate(
         )
     except Exception as e:
         logger.error(f"Unexpected error calculating {expression}: {e}", exc_info=True)
-        # Re-raise so the error is not silently swallowed and is visible in logs/tracebacks
         raise
 
 
@@ -124,7 +122,8 @@ class CalcRequest(BaseModel):
 @app.post("/api/calculate")
 async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
     try:
-        result = format_result(safe_eval(body.expression), body.show_fraction)
+        value = calc.safe_eval(body.expression)
+        result = calc.format_result(value, body.show_fraction)
         return JSONResponse(content={"result": result, "expression": body.expression})
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {body.expression}")

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rtk ls:*)",
+      "Bash(uv run:*)",
+      "Bash(rtk git:*)",
+      "Bash(rtk git commit -m ':*)",
+      "Bash(uvx ruff:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge rational --no-ff -m ':*)",
+      "Bash(rtk read:*)",
+      "Bash(rtk find:*)"
+    ]
+  }
+}

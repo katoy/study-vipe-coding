@@ -4,6 +4,8 @@ info:
   version: 1.0.0
   description: |
     A simple calculator web application exposing both HTML UI endpoints and JSON API endpoints.
+    The API supports optional fraction formatting (mixed fractions) and uses brace notation for
+    repeating decimals (e.g. 0.{3}).
 servers:
   - url: http://localhost:8000
     description: Local development server
@@ -33,6 +35,9 @@ paths:
                 expression:
                   type: string
                   description: Arithmetic expression to evaluate
+                show_fraction:
+                  type: boolean
+                  description: If true, render result as mixed fraction in HTML response
               required:
                 - expression
       responses:
@@ -62,6 +67,9 @@ paths:
                 expression:
                   type: string
                   description: Arithmetic expression to evaluate
+                show_fraction:
+                  type: boolean
+                  description: If true, return mixed fraction string when applicable
               required:
                 - expression
       responses:
@@ -73,8 +81,13 @@ paths:
                 type: object
                 properties:
                   result:
-                    type: number
-                    description: Result of the evaluated expression
+                    description: >-
+                      Result of the evaluated expression — a number for plain numeric
+                      results, or a string when formatted (e.g. "1 1/2" or repeating
+                      decimal "0.{3}").
+                    oneOf:
+                      - type: number
+                      - type: string
                   expression:
                     type: string
                     description: Echo of the original expression
@@ -91,4 +104,13 @@ paths:
                   expression:
                     type: string
                     description: Echo of the original expression
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
 components: {}

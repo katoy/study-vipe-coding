@@ -3,3 +3,17 @@ services:
     build: .
     ports:
       - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/" , "||", "exit", "1"]
+      interval: 5s
+      retries: 12
+
+  test:
+    build:
+      context: .
+      target: ci
+    depends_on:
+      - calculator
+    # Run pytest in the CI target image (exits with test result)
+    command: ["pytest", "-q"]
+    # No ports needed for test container

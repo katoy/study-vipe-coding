@@ -2,233 +2,283 @@ import ast
 import operator
 import os
 import re
-from typing import Any, Callable, Dict
+from fractions import Fraction
+from typing import Any, Callable, Dict, Union
+
+Number = Union[int, float, Fraction]
 
 
-def _safe_pow(left: int | float, right: int | float) -> int | float:
-    """べき乗演算のガード付き実装。指数・底が大きすぎる場合は ValueError を送出する。"""
-    if not isinstance(right, int) or abs(right) > 20:
-        raise ValueError("べき乗の指数が大きすぎます")
-    if abs(left) > 1e6:
-        raise ValueError("べき乗の底が大きすぎます")
-    return operator.pow(left, right)  # type: ignore[return-value]
+class Calculator:
+    """Calculator encapsulates expression evaluation and formatting settings."""
 
+    def __init__(
+        self,
+        max_decimal_digits: int = 1000,
+        max_denominator: int = 1000,
+        max_expr_length: int = 100,
+        max_nodes: int = 2000,
+        max_depth: int = 60,
+    ) -> None:
+        self.max_decimal_digits = max_decimal_digits
+        self.max_denominator = max_denominator
+        self.max_expr_length = max_expr_length
+        self.max_nodes = max_nodes
+        self.max_depth = max_depth
+        # operator map
+        self._OPS: Dict[type, Callable[..., Any]] = {
+            ast.Add: operator.add,
+            ast.Sub: operator.sub,
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
+            ast.Mod: operator.mod,
+            ast.USub: operator.neg,
+            ast.UAdd: operator.pos,
+        }
 
-_OPS: Dict[type, Callable[..., Any]] = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.Mod: operator.mod,
-    ast.USub: operator.neg,
-    ast.UAdd: operator.pos,
-}
+    def _safe_pow(self, left: int | float, right: int | float) -> int | float:
+        if not isinstance(right, int) or abs(right) > 20:
+            raise ValueError("べき乗の指数が大きすぎます")
+        if abs(left) > 1e6:
+            raise ValueError("べき乗の底が大きすぎます")
+        return operator.pow(left, right)  # type: ignore
 
+    def _eval_node(self, node: ast.expr, ops: Dict[type, Callable[..., Any]]) -> Number:
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+            return node.value
+        if isinstance(node, ast.UnaryOp) and type(node.op) in ops:
+            return ops[type(node.op)](self._eval_node(node.operand, ops))  # type: ignore
+        if isinstance(node, ast.BinOp) and type(node.op) in ops:
+            left = self._eval_node(node.left, ops)
+            right = self._eval_node(node.right, ops)
+            if type(node.op) is ast.Div:
+                if isinstance(left, Fraction) or isinstance(right, Fraction):
+                    return Fraction(left) / Fraction(right)
+                if isinstance(left, int) and isinstance(right, int):
+                    return Fraction(left, right)
+                return ops[type(node.op)](left, right)  # type: ignore
+            return ops[type(node.op)](left, right)  # type: ignore
+        raise ValueError("不正な式")
 
-def _eval_node(node: ast.expr, ops: Dict[type, Callable[..., Any]]) -> int | float:
-    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
-        return node.value
-    if isinstance(node, ast.UnaryOp) and type(node.op) in ops:
-        return ops[type(node.op)](_eval_node(node.operand, ops))  # type: ignore
-    if isinstance(node, ast.BinOp) and type(node.op) in ops:
-        left = _eval_node(node.left, ops)
-        right = _eval_node(node.right, ops)
-        return ops[type(node.op)](left, right)  # type: ignore
-    raise ValueError("不正な式")
+    def _check_complexity(
+        self, node: ast.AST, max_nodes: int | None = None, max_depth: int | None = None
+    ) -> None:
+        if max_nodes is None:
+            max_nodes = self.max_nodes
+        if max_depth is None:
+            max_depth = self.max_depth
+        count = 0
+        maxd = 0
 
+        def dfs(n: ast.AST, depth: int) -> None:
+            nonlocal count, maxd
+            count += 1
+            if depth > maxd:
+                maxd = depth
+            if count > max_nodes:
+                raise ValueError("計算式が複雑すぎます")
+            for child in ast.iter_child_nodes(n):
+                dfs(child, depth + 1)
 
-def _check_complexity(node: ast.AST, max_nodes: int = 2000, max_depth: int = 60) -> None:
-    """Traverse the AST and ensure node count and depth are within limits.
-
-    Raises ValueError if limits exceeded.
-    """
-    count = 0
-    maxd = 0
-
-    def dfs(n: ast.AST, depth: int) -> None:
-        nonlocal count, maxd
-        count += 1
-        if depth > maxd:
-            maxd = depth
-        if count > max_nodes:
+        dfs(node, 0)
+        if maxd > max_depth:
             raise ValueError("計算式が複雑すぎます")
-        for child in ast.iter_child_nodes(n):
-            dfs(child, depth + 1)
 
-    dfs(node, 0)
-    if maxd > max_depth:
-        raise ValueError("計算式が複雑すぎます")
+    def safe_eval(self, expr: str) -> Number:
+        if len(expr) > self.max_expr_length:
+            long_dec_check = r"(?P<sign>-?)(?P<int>\d+)\.(?P<dec>\d{20,})"
+            rep_check = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}"
+            mixed_check = r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)"
+            if (
+                not re.search(long_dec_check, expr)
+                and not re.search(rep_check, expr)
+                and not re.search(mixed_check, expr)
+            ):
+                raise ValueError("計算式が長すぎます")
+        if len(expr) > 20000:
+            raise ValueError("計算式が長すぎます")
 
+        def _replace_long_decimal(m: re.Match[str]) -> str:
+            sign = m.group("sign") or ""
+            intpart = m.group("int")
+            decpart = m.group("dec")
+            numerator = int((intpart + decpart))
+            denom = 10 ** len(decpart)
+            if sign == "-":
+                numerator = -numerator
+            return f"({numerator}/{denom})"
 
-def safe_eval(expr: str) -> int | float:
-    # Basic input length guard
-    if len(expr) > 100:
-        raise ValueError("計算式が長すぎます")
+        long_dec_pattern = r"(?P<sign>-?)(?P<int>\d+)\.(?P<dec>\d{20,})"
+        expr = re.sub(long_dec_pattern, _replace_long_decimal, expr)
 
-    # Preprocess repeating decimals like "0.(3)" or "1.2(34)" into rational numer/denom
-    def _replace_repeating(m: re.Match) -> str:
-        # Groups: sign, whole (may be empty), nonrep (may be empty), rep (required)
-        sign = m.group('sign') or ''
-        whole = m.group('whole') or ''
-        nonrep = m.group('nonrep') or ''
-        rep = m.group('rep')
-        W = int(whole) if whole != '' else 0
-        A = nonrep
-        B = rep
-        mlen = len(A)
-        nlen = len(B)
-        if mlen > 0:
-            num = int(A) * (10**nlen - 1) + int(B)
-            den = (10**mlen) * (10**nlen - 1)
+        def _replace_repeating(m: re.Match[str]) -> str:
+            sign = m.group("sign") or ""
+            whole = m.group("whole") or ""
+            nonrep = m.group("nonrep") or ""
+            rep = m.group("rep")
+            W = int(whole) if whole != "" else 0
+            A = nonrep
+            B = rep
+            mlen = len(A)
+            nlen = len(B)
+            if mlen > 0:
+                num = int(A) * (10**nlen - 1) + int(B)
+                den = (10**mlen) * (10**nlen - 1)
+            else:
+                num = int(B)
+                den = 10**nlen - 1
+            total_num = W * den + num
+            if sign == "-":
+                total_num = -total_num
+            return f"({total_num}/{den})"
+
+        rep_pattern = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}"
+        expr = re.sub(rep_pattern, _replace_repeating, expr)
+
+        def _replace_mixed(m: re.Match[str]) -> str:
+            sign = m.group("sign") or ""
+            whole = m.group("whole")
+            num = m.group("num")
+            den = m.group("den")
+            if sign == "-":
+                return f"(-({whole} + {num}/{den}))"
+            return f"({whole} + {num}/{den})"
+
+        pattern = r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)"
+        expr = re.sub(pattern, _replace_mixed, expr)
+
+        try:
+            tree = ast.parse(expr, mode="eval")
+        except SyntaxError:
+            raise
+
+        self._check_complexity(tree)
+
+        ops = self._OPS.copy()
+        allow_pow = os.getenv("ALLOW_POW", "0").lower() in ("1", "true", "yes")
+        if allow_pow:
+            ops[ast.Pow] = self._safe_pow
+
+        try:
+            result = self._eval_node(tree.body, ops)
+        except RecursionError:
+            raise ValueError("計算式が複雑すぎます")
+
+        if isinstance(result, float) and result.is_integer():
+            return int(result)
+        if isinstance(result, Fraction) and result.denominator == 1:
+            return result.numerator
+        return result
+
+    def float_to_mixed_fraction(
+        self, value: Union[int, float, Fraction], max_denominator: int | None = None
+    ) -> str:
+        if max_denominator is None:
+            max_denominator = self.max_denominator
+        if value == 0:
+            return "0"
+        sign = "-" if (value < 0) else ""
+        if isinstance(value, Fraction):
+            frac = value
+            if frac < 0:
+                frac = -frac
         else:
-            num = int(B)
-            den = (10**nlen - 1)
-        total_num = W * den + num
-        if sign == '-':
-            total_num = -total_num
-        # return as a numeric division literal that safe_eval can parse
-        return f'({total_num}/{den})'
+            frac = Fraction(value).limit_denominator(max_denominator)
+        num = frac.numerator
+        den = frac.denominator
+        whole, rem = divmod(abs(num), den)
+        if rem == 0:
+            return f"{sign}{whole}"
+        if whole == 0:
+            return f"{sign}{rem}/{den}"
+        return f"{sign}{whole} {rem}/{den}"
 
-    # pattern accepting only {...} for repeating decimals
-    rep_pattern = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}"
-    expr = re.sub(rep_pattern, _replace_repeating, expr)
+    def mixed_fraction_parts(
+        self, value: Union[int, float, Fraction], max_denominator: int | None = None
+    ) -> dict[str, int | str]:
+        if max_denominator is None:
+            max_denominator = self.max_denominator
+        if isinstance(value, Fraction):
+            frac = value
+        else:
+            frac = Fraction(value).limit_denominator(max_denominator)
+        num = frac.numerator
+        den = frac.denominator
+        sign = "-" if num < 0 else ""
+        num_abs = abs(num)
+        whole = num_abs // den
+        rem = num_abs % den
+        return {"sign": sign, "whole": whole, "num": rem, "den": den}
 
-    # Preprocess mixed fractions like "2 2/3" -> "(2 + 2/3)" and negatives "-1 1/4" -> "- (1 + 1/4)"
-    def _replace_mixed(m: re.Match) -> str:
-        sign = m.group('sign') or ''
-        whole = m.group('whole')
-        num = m.group('num')
-        den = m.group('den')
-        if sign == '-':
-            # -1 1/4 means -(1 + 1/4)
-            return f'(-({whole} + {num}/{den}))'
-        # positive or no sign
-        return f'({whole} + {num}/{den})'
+    def fraction_to_repeating_decimal(
+        self, frac: Fraction | int | float, max_len: int | None = None
+    ) -> str:
+        if max_len is None:
+            max_len = self.max_decimal_digits
+        if not isinstance(frac, Fraction):
+            frac = Fraction(frac)
+        num = frac.numerator
+        den = frac.denominator
+        sign = "-" if num < 0 else ""
+        num = abs(num)
+        whole = num // den
+        rem = num % den
+        if rem == 0:
+            return f"{sign}{whole}"
+        decimals: list[str] = []
+        seen: dict[int, int] = {}
+        idx = 0
+        repeat_start: int | None = None
+        while rem != 0 and idx < max_len:
+            if rem in seen:
+                repeat_start = seen[rem]
+                break
+            seen[rem] = idx
+            rem *= 10
+            digit = rem // den
+            decimals.append(str(digit))
+            rem = rem % den
+            idx += 1
+        if rem == 0:
+            return f"{sign}{whole}." + ("".join(decimals) if decimals else "0")
+        if repeat_start is None:
+            return f"{sign}{whole}." + "".join(decimals)
+        non_rep = "".join(decimals[:repeat_start])
+        rep = "".join(decimals[repeat_start:])
+        if non_rep == "":
+            return f"{sign}{whole}.{{{rep}}}"
+        return f"{sign}{whole}.{non_rep}{{{rep}}}"
 
-    pattern = r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)"
-    expr = re.sub(pattern, _replace_mixed, expr)
+    def float_to_repeating_decimal(
+        self, value: Union[int, float, Fraction], max_len: int | None = None
+    ) -> str:
+        if max_len is None:
+            max_len = self.max_decimal_digits
+        if isinstance(value, Fraction):
+            frac = value
+        else:
+            frac = Fraction(value).limit_denominator(self.max_denominator)
+        return self.fraction_to_repeating_decimal(frac, max_len=max_len)
 
-    try:
-        tree = ast.parse(expr, mode="eval")
-    except SyntaxError:
-        raise
-
-    # Complexity checks to prevent DoS via huge/deep expressions
-    _check_complexity(tree)
-
-    # Build operator mapping per-invocation. Power operator is opt-in via ALLOW_POW env var.
-    # _safe_pow enforces limits on exponent and base to prevent huge results.
-    ops = _OPS.copy()
-    allow_pow = os.getenv("ALLOW_POW", "0").lower() in ("1", "true", "yes")
-    if allow_pow:
-        ops[ast.Pow] = _safe_pow
-
-    try:
-        result = _eval_node(tree.body, ops)
-    except RecursionError:
-        # Protect against pathological recursion/very deep AST evaluation
-        raise ValueError("計算式が複雑すぎます")
-
-    if isinstance(result, float) and result.is_integer():
-        return int(result)
-    return result
-
-
-def float_to_mixed_fraction(value: float, max_denominator: int = 1000) -> str:
-    """Convert a numeric value to a mixed fraction string (帯分数).
-
-    Examples:
-      1.75 -> "1 3/4"
-      0.5  -> "1/2"
-      2.0  -> "2"
-      -1.25 -> "-1 1/4"
-    """
-    from fractions import Fraction
-
-    # Use Fraction to obtain a rational approximation within a denominator limit
-    frac = Fraction(value).limit_denominator(max_denominator)
-    num = frac.numerator
-    den = frac.denominator
-    sign = "-" if num < 0 else ""
-    num_abs = abs(num)
-    whole = num_abs // den
-    rem = num_abs % den
-
-    if rem == 0:
-        return f"{sign}{whole}"
-    if whole == 0:
-        return f"{sign}{rem}/{den}"
-    return f"{sign}{whole} {rem}/{den}"
-
-
-def fraction_to_repeating_decimal(frac, max_len: int = 50) -> str:
-    """Convert a Fraction to a decimal string, using braces for repeating part.
-
-    Examples:
-      Fraction(1,3) -> "0.{3}"
-      Fraction(8,3) -> "2.{6}"
-      Fraction(1,2) -> "0.5"  # terminating
-    """
-    from fractions import Fraction
-
-    if not isinstance(frac, Fraction):
-        frac = Fraction(frac)
-
-    num = frac.numerator
-    den = frac.denominator
-    sign = "-" if num < 0 else ""
-    num = abs(num)
-
-    whole = num // den
-    rem = num % den
-
-    if rem == 0:
-        return f"{sign}{whole}"
-
-    # Long division to produce decimal digits and detect repeating remainder
-    decimals = []
-    seen = { }
-    idx = 0
-    repeat_start = None
-    while rem != 0 and idx < max_len:
-        if rem in seen:
-            repeat_start = seen[rem]
-            break
-        seen[rem] = idx
-        rem *= 10
-        digit = rem // den
-        decimals.append(str(digit))
-        rem = rem % den
-        idx += 1
-
-    if rem == 0:
-        # terminating decimal
-        return f"{sign}{whole}." + ("".join(decimals) if decimals else "0")
-
-    # repeating — use braces instead of parentheses
-    non_rep = "".join(decimals[:repeat_start])
-    rep = "".join(decimals[repeat_start:])
-    if non_rep == "":
-        return f"{sign}{whole}.{{{rep}}}"
-    return f"{sign}{whole}.{non_rep}{{{rep}}}"
-
-
-def float_to_repeating_decimal(value: float, max_denominator: int = 1000) -> str:
-    from fractions import Fraction
-    frac = Fraction(value).limit_denominator(max_denominator)
-    return fraction_to_repeating_decimal(frac)
-
-
-def format_result(result: int | float, show_fraction: bool) -> int | float | str:
-    """Format a calculation result for display.
-
-    If show_fraction is True, convert to mixed-fraction string.
-    Otherwise, if the result is a float with a repeating decimal, use brace notation.
-    """
-    if show_fraction and isinstance(result, (int, float)):
-        return float_to_mixed_fraction(float(result))
-    if isinstance(result, float):
-        rep = float_to_repeating_decimal(float(result))
-        if "{" in rep:
+    def format_result(self, result: Number, show_fraction: bool) -> int | float | str:
+        if show_fraction and isinstance(result, (int, float, Fraction)):
+            return self.float_to_mixed_fraction(result)
+        if isinstance(result, (int, float, Fraction)):
+            frac = Fraction(result) if not isinstance(result, Fraction) else result
+            if frac.denominator == 1:
+                return frac.numerator
+            rep = self.float_to_repeating_decimal(result, max_len=self.max_decimal_digits)
+            if "{" in rep:
+                return rep
+            if "." in rep:
+                dec_part = rep.split(".", 1)[1]
+                if len(dec_part) <= 15:
+                    try:
+                        return float(rep)
+                    except Exception:
+                        return rep
             return rep
-    return result
+        return result
+
+
+# Export convenience name
+CalculatorClass = Calculator

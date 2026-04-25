@@ -1,6 +1,24 @@
 {% if is_error %}
 <div class="result" id="result" role="status" aria-live="polite" aria-atomic="true">{{ result }}</div>
 {% else %}
-<input type="text" name="expression" id="expression" value="{{ result }}" aria-label="式入力" placeholder="式を入力" style="width:100%;font-size:1.6rem;background:transparent;border:none;color:#eee;outline:none;text-align:right;" autocomplete="off" hx-swap-oob="true" />
-<div class="result" id="result" role="status" aria-live="polite" aria-atomic="true"></div>
+<input type="text" name="expression" id="expression" value="{{ result }}" aria-label="式入力" placeholder="式を入力" style="width:100%;font-size:1.6rem;background:transparent;border:none;color:var(--display-text);outline:none;text-align:right;" autocomplete="off" hx-swap-oob="true" />
+<div id="fraction-preview" hx-swap-oob="true" style="padding-left:8px;min-width:64px;">
+  {% if fraction_parts and fraction_parts.num != 0 %}
+    <span class="fraction" aria-hidden="false">
+      {% if fraction_parts.whole and fraction_parts.whole != 0 %}
+        <span class="whole">{{ fraction_parts.sign }}{{ fraction_parts.whole }}</span>
+      {% endif %}
+      <span class="stack">
+        <span class="num">{{ fraction_parts.num }}</span>
+        <span class="bar" aria-hidden="true"></span>
+        <span class="den">{{ fraction_parts.den }}</span>
+      </span>
+    </span>
+  {% else %}
+    <!-- empty preview -->
+  {% endif %}
+</div>
+<div class="result" id="result" role="status" aria-live="polite" aria-atomic="true">
+  {{ result }}
+</div>
 {% endif %}

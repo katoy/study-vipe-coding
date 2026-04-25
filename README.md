@@ -1,232 +1,198 @@
 # Webベース電卓アプリケーション
 
-![アプリケーションの動作デモ](app/static/calculator_demo.gif)
+軽量な FastAPI + HTMX を用いたシンプルな Web 電卓です。ブラウザ UI と JSON API を提供します。
 
-本プロジェクトは、Pythonベースの軽量Webフレームワークである **FastAPI** と、フロントエンドの動的描画を容易にする **HTMX** を用いて開発されたシンプルなWeb電卓アプリケーションです。ブラウザ上で動作する対話的なUIを提供するだけでなく、外部プログラムから利用可能なJSON APIとしての機能も備えています。
-
-## 目次
-- [プロジェクトの概要と主な機能](#プロジェクトの概要と主な機能)
-- [フォルダ構成とファイル一覧](#フォルダ構成とファイル一覧)
-- [ローカル環境での実行方法（クイックスタート）](#ローカル環境での実行方法クイックスタート)
+Table of Contents
+- [概要](#概要)
+- [クイックスタート](#クイックスタート)
+- [ファイル一覧](#ファイル一覧)
 - [API 仕様](#api-仕様)
-- [テストとカバレッジ（計測・実行方法）](#テストとカバレッジ計測実行方法)
-- [Docker コンテナでの実行（デプロイ）](#docker-コンテナでの実行デプロイ)
-- [ライセンス](#ライセンス)
+- [テストとカバレッジ](#テストとカバレッジ)
+- [デモ動画](#デモ動画)
+- [開発環境セットアップ (ローカルフック)](#開発環境セットアップ-ローカルフック)
+- [静的解析](#静的解析)
+- [実装上の注意](#実装上の注意)
+- [貢献・ライセンス](#貢献・ライセンス)
+
+---
 
 ## 概要
-- フロントエンド: HTMX を用いた部分更新（templates/index.html, templates/result.html）
-- バックエンド: FastAPI（app.main）
-- 安全な式評価: app.services.calculator.safe_eval（AST ベース）
-- テスト: pytest をベースにユニットテストと Playwright を用いた E2E が含まれることを想定しています。
+主なポイント（実装に基づく）
 
-## フォルダ構成とファイル一覧
+- エントリポイント: `app/main.py`
+  - HTML UI: GET `/` -> templates/index.html
+  - フォーム計算: POST `/calculate` -> templates/result.html（HTMX 部分更新）
+  - JSON API: POST `/api/calculate` -> `{ "result": ..., "expression": ... }`
+- 計算ロジック: `app/services/calculator.py`
+  - Calculator クラスを提供しています: `Calculator()` のインスタンスメソッド（例: `Calculator().safe_eval(expr)`）で式を評価します。アプリ起動時にモジュールレベルの `calc` インスタンスが `app.main` 内に作成されており、アプリケーション実行中にプログラムから再利用する場合は `from app.main import calc` を利用できます。
+  - AST ベースの安全な評価を行い、混数、循環小数表記（波括弧 `{}`）等に対応します（内部では `fractions.Fraction` を用いて可能な限り有理数を厳密に扱います）。
+  - べき乗は環境変数 `ALLOW_POW` によりオプトイン（安全ガードあり）。
+- 簡易レート制限: `RATE_LIMIT_PER_MIN`（単一プロセス向けの in-memory 実装）。
+- CORS: `ALLOW_ORIGINS` 環境変数で制御（カンマ区切り）。
 
-以下は本プロジェクトの主要なファイルとディレクトリ構成です。
+---
 
-```text
-.
-├── .github/
-│   └── workflows/
-│       └── ci.yml             # GitHub Actions の CI/CD 設定ファイル
-├── app/
-│   ├── main.py                # FastAPI アプリケーションのエントリポイント
-│   ├── routers/               # （将来の拡張用）ルーティングディレクトリ
-│   ├── schemas/               # （将来の拡張用）データスキーマ定義
-│   ├── services/
-│   │   ├── calculator.py      # ASTを用いた安全な計算ロジック（コアロジック）
-│   │   └── convert.py         # 補助処理用モジュール
-│   ├── static/                # CSS, JS, 画像などの静的ファイル
-│   │   └── htmx.min.js        # HTMXライブラリ
-│   └── templates/             # Jinja2 テンプレート
-│       ├── index.html         # 電卓のメインUI画面
-│       └── result.html        # HTMXで部分更新される計算結果用パーツ
-├── docs/
-│   └── openapi.yaml           # API仕様書（OpenAPIフォーマット）
-├── tests/
-│   ├── test_calculator.py     # 計算ロジックおよびAPIのユニットテスト
-│   └── test_ui.py             # Playwright を用いた E2E（ブラウザ）テスト
-├── Dockerfile                 # 本番・デプロイ用コンテナイメージ定義
-├── compose.yaml               # Docker Compose用設定ファイル
-├── pyproject.toml             # uv を用いたプロジェクト設定と依存関係（Linter等の設定含む）
-├── pytest.ini                 # pytest の基本設定（Playwright無効化等の保護設定）
-├── run.bat / run.sh           # アプリケーションをDockerで起動するためのスクリプト
-├── test_ui.bat / test_ui.sh   # ローカルで E2E テストを安全に実行するためのスクリプト
-├── uv.lock                    # uv の依存関係ロックファイル
-├── .python-version            # Python バージョン指定ファイル
-└── README.md                  # 本ドキュメント
-```
+## クイックスタート
 
-## ローカル環境での実行方法（クイックスタート）
-本アプリケーションをローカル環境で動作させる手順は以下の通りです。パッケージマネージャーとして `uv` を使用します。
+1. クローンして移動
 
 ```bash
-# 1. リポジトリのクローンとディレクトリへの移動
 git clone <リポジトリURL>
 cd study-vipe-coding
+```
 
-# 2. 依存パッケージのインストール（uvを利用）
+2. 依存関係（uv を用いる想定）
+
+```bash
 uv sync
+```
 
-# 3. 開発用サーバーの起動
+3. 開発用サーバー起動
+
+```bash
 uv run uvicorn app.main:app --reload --port 8000
 ```
-サーバーが起動したら、ブラウザで `http://localhost:8000` にアクセスすると、電卓のUI画面が表示されます。
+
+ブラウザで `http://localhost:8000` を開くと UI が表示されます。
+
+
+### Docker スクリプト
+
+リポジトリには開発者向けに Docker を使った起動・CI 実行スクリプトを用意しています。
+
+- サーバ起動（Linux/macOS）:
+
+```bash
+./run.sh
+```
+
+- サーバ起動（Windows）:
+
+```powershell
+run.bat
+```
+
+これらは Docker の `base`（runtime）ステージをビルドしてコンテナを起動します（ポート: 8000）。
+
+- CI 実行（Linux/macOS）:
+
+```bash
+./ci.sh
+```
+
+- CI 実行（Windows）:
+
+```powershell
+ci.bat
+```
+
+CI スクリプトは Docker の `ci` ステージをビルドし、コンテナ内で ruff/mypy/pytest 等のチェックを実行します。Docker 環境が整っていればローカルで CI 相当の検証が可能です。
+
+
+
+---
+
+## ファイル一覧
+主要なファイル・ディレクトリと役割:
+
+- app/
+  - main.py - FastAPI アプリケーションのエントリポイント（ルーティング、テンプレート応答、API）。
+  - services/calculator.py - 計算ロジックと表示用ヘルパー（安全な AST 評価、Fraction ベースの扱い、分数/循環小数の生成）。
+  - templates/ - Jinja2 テンプレート（index.html, result.html）。
+  - static/ - 静的資産（favicon.svg、demo GIF など）。
+- tests/ - ユニットテスト群（pytest）。
+- docs/ - ドキュメント（OpenAPI 等。存在する場合）。
+- setup-dev.sh - ローカル開発用フックのインストールスクリプト。
+- .github/workflows/ - CI 設定（lint / test ワークフロー）。
+
+---
 
 ## API 仕様
-他のプログラムやクライアントから計算処理を呼び出すためのAPIエンドポイントについて説明します。
 
-### POST `/api/calculate`
-- **リクエスト形式**（`application/json`）: `{ "expression": "<算術式>" }`
-- **レスポンス形式**:
-  - `200 OK` (正常終了) – `{ "result": <数値>, "expression": "..." }`
-  - `400 Bad Request` (エラー) – `{ "error": "<エラー詳細>", "expression": "..." }` （例: ゼロ除算や不正な式の入力時）
+- POST /api/calculate
+  - リクエスト JSON: `{ "expression": "3/2", "show_fraction": <bool, optional> }`
+  - 成功: `200` `{ "result": <数値または文字列>, "expression": "..." }`
+  - エラー: `400`（不正な式やゼロ除算など）`{ "error": "...", "expression": "..." }`
 
-### OpenAPI ドキュメント（Swagger UI / ReDoc）
-ローカルサーバー起動中に以下のURLにアクセスすることで、ブラウザから直接APIの仕様確認およびテスト実行が可能です。
-- **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
+OpenAPI（起動中）: `/docs`（Swagger UI）、`/redoc`（ReDoc）
 
-## テストとカバレッジ（計測・実行方法）
-本プロジェクトは、`pytest`、`coverage`（`pytest-cov`）および `Playwright` を用いた品質保証が行われています。
+---
 
-### 1. ユニットテストの実行
-ローカル環境では、APIや内部ロジックに対するユニットテストを以下のコマンドで実行できます。
-（※ローカル環境保護のため、デフォルトでブラウザを用いたE2Eテストはスキップされます）
+## テストとカバレッジ
+
+- ユニットテスト（API・ロジック）
 
 ```bash
 uv run pytest
 ```
 
-### 2. E2E（ブラウザ）テストの実行
-HTMXの動作など、実際のブラウザ挙動を検証する E2E テストは、環境依存（DLLエラー等）を防ぐため **Docker環境での実行** を推奨しています。専用のスクリプトを使用してください。
+- E2E（ブラウザ）テストは環境依存のため Docker での実行を推奨します。スクリプト:
+  - Windows: `test_ui.bat`
+  - macOS/Linux: `bash test_ui.sh`
 
-- **Windows**: `test_ui.bat` を実行
-- **macOS / Linux**: `bash test_ui.sh` を実行
-
-#### ローカルで Playwright を使って E2E を実行する手順
-開発機で直接 Playwright を用いてテストを実行する場合の手順（簡潔）を示します。既に Docker での実行手順がある場合、そちらを優先してください。
-
-1. 仮想環境の作成と有効化
+### カバレッジ計測方法
+ローカルでのカバレッジ測定方法:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate    # macOS / Linux
-# Windows (PowerShell): .\.venv\Scripts\Activate.ps1
+# XML と HTML 両方を出力する例
+pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html:coverage_html
 ```
 
-2. 必要パッケージのインストール
+出力結果は `coverage.xml`（CI 向け）および `coverage_html/`（ブラウザで閲覧可能）に生成されます。
+
+### 現在のカバレッジ結果（リポジトリ内 coverage.xml より）
+- 行カバレッジ: 226 / 226 (100%)
+- 分岐カバレッジ: 70 / 70 (100%)
+
+(coverage.xml はリポジトリに含まれています)。
+
+---
+
+## デモ動画
+
+デモ用アニメーションは static に配置しています。ブラウザで確認するにはサーバ起動後に以下にアクセスしてください（あるいはリポジトリ内のファイルを参照）:
+
+- `app/static/calculator_demo.gif` — 簡易デモ（GIF）
+- `app/static/calculator_demo.webp` — WebP 版
+
+画面を実際に操作するデモを別途用意する場合はここにリンクを追加してください（YouTube 等）。
+
+---
+
+## 開発環境セットアップ (ローカルフック)
+
+- リポジトリには `setup-dev.sh` スクリプトが含まれており、ローカルでの開発支援フックをインストールします。
+  - 実行: `./setup-dev.sh`
+  - インストールされるフック:
+    - `.githooks/pre-commit` : コミット時に `ruff check app tests` を実行します。
+    - `.githooks/pre-push` : プッシュ時に `ruff check app tests` と `mypy app` を実行し、失敗すると push をブロックします。
+
+目的: コード品質（Linter / 型チェック）をローカル開発で早期に検出し、CI 前に不整合を防ぐためです。
+
+---
+
+## 静的解析
+
+- Ruff / Mypy を CI として導入しています。ローカルでチェックするコマンド例:
 
 ```bash
-pip install -U pip
-pip install pytest pytest-playwright playwright fastapi uvicorn jinja2 python-multipart httpx
-```
-
-3. Playwright のブラウザをインストール
-
-```bash
-playwright install --with-deps
-# 依存パッケージが足りないLinuxでは: playwright install-deps
-```
-
-4. E2E テスト実行（サーバはテスト側で起動されます）
-
-```bash
-pytest -q tests/test_ui.py
-```
-
-5. ヘッド表示でデバッグする場合
-
-```bash
-pytest -q tests/test_ui.py --headed
-# 個別テスト実行例:
-# pytest -q tests/test_ui.py -k test_calculator_basic_addition --headed
-```
-
-トラブルシューティングの注意点:
-- `.venv/bin/python3` が見つからない場合は `.venv` を削除して再作成してください: `rm -rf .venv && python3 -m venv .venv`
-- Playwright のブラウザ導入に失敗する場合はネットワークや権限を確認し、Linux では `playwright install-deps` を試してください。
-- ローカルでポート 8000 が既に使われているとテストが失敗します（別のプロセスを停止するかテストのポート設定を変更してください）。
-
-これでローカルでの Playwright 実行手順を README に追加しました。
-
-### 3. テストカバレッジの計測方法
-コードカバレッジ（テスト網羅率）を計測して結果を出力するには、以下のコマンドを実行します。
-
-```bash
-# pytest-cov を利用したカバレッジ計測とコンソール出力
-uv run pytest --cov=app --cov-report=term-missing
-```
-
-**カバレッジ計測結果（コアロジックは100%を維持）:**
-```text
-Name                         Stmts   Miss  Cover   Missing
-----------------------------------------------------------
-app\__init__.py                  0      0   100%
-app\main.py                     48      6    88%   59-61, 90-92
-app\routers\__init__.py          0      0   100%
-app\schemas\__init__.py          0      0   100%
-app\services\__init__.py         0      0   100%
-app\services\calculator.py      19      0   100%
-----------------------------------------------------------
-TOTAL                           67      6    91%
-```
-*(※ `app.main` および `app.services.calculator` などの中核ロジックは実質100%近いカバレッジを維持しています。)*
-
-### 4. 静的解析（Linter/Formatter/型チェック）
-コード品質を保つため、`Ruff` によるリントとフォーマット、`Mypy` による型チェックを導入しています。CIでも実行されるため、コミット前にローカルで確認してください。
-
-```bash
-# フォーマットのチェック
-uv run ruff format --check app tests
-
-# Linterの実行
 uv run ruff check app tests
-
-# 型チェックの実行
 uv run mypy app
 ```
 
-## 環境変数（CORS 設定）
-アプリケーションは ALLOW_ORIGINS 環境変数で CORS の許可オリジンを指定できます。値はカンマ区切りで複数指定可能です（例: `http://localhost:8000,https://example.com`）。デフォルトは `http://localhost:8000`（開発用）です。
+---
 
-本番ではワイルドカード（`*`）を避け、必要なオリジンのみを列挙してください。Docker で実行する場合は `-e ALLOW_ORIGINS="https://example.com"` のように環境変数を渡します。ALLOW_ORIGINS は空白をトリムして扱われます。
+## 実装上の注意
 
-## その他の環境変数
-- ALLOW_POW
-  - 説明: べき乗演算子（`**` / ast.Pow）を有効化するフラグ。
-  - デフォルト: `0` (無効)
-  - 値: `1`, `true`, `yes` のいずれかで有効化されます。
-  - 注意: デフォルトでは無効です。べき乗は急激に大きな数値を生むため、セキュリティとリソース保護の観点から本番での有効化は慎重に行ってください。許可時でも指数や底に上限チェックが入ります。
+- 計算式は AST による解析で評価され、任意のコード実行はブロックされています（テストで検証済み）。
+- レートリミットと CORS の実装はシングルプロセス向けの簡易実装です。本番での水平スケール時は外部ストアや API ゲートウェイを導入してください。
 
-- RATE_LIMIT_PER_MIN
-  - 説明: `/api/` エンドポイントに適用される1分あたりのリクエスト上限（簡易 in-memory 実装）。
-  - デフォルト: `60`
-  - 設定例: `-e RATE_LIMIT_PER_MIN=200`
-  - 注意: 現在の実装は単一プロセス向けの簡易版です。分散環境や複数ワーカーでの利用は Redis 等の外部ストアを用いた実装を推奨します。
+---
 
-（参考）設定例は `.env.example` を参照してください。
+## 貢献・ライセンス
 
-## Docker コンテナでの実行（デプロイ）
-Dockerを利用して、ローカルの依存環境に影響されることなくアプリケーションを実行できます。
+PR・Issue を歓迎します。
 
-**Docker Compose を使用する方法 (推奨):**
-```bash
-docker compose up -d
-```
+ライセンスは MIT です（`LICENSE` を参照）。
 
-**起動スクリプトを使用する方法:**
-プラットフォームに応じたスクリプトを実行することで、イメージのビルドとコンテナの起動を自動で行います。
-- **Windows**: `run.bat` を実行
-- **macOS / Linux**: `bash run.sh` を実行
-
-**コマンドを手動で実行する方法:**
-```bash
-# コンテナイメージのビルド
-docker build -t calculator-app .
-# コンテナのバックグラウンド起動とポートマッピング
-docker run --rm -p 8000:8000 calculator-app
-```
-起動後は、同様に `http://localhost:8000` にアクセスしてアプリケーションを利用できます。
-
-## ライセンス
-本プロジェクトは **MIT ライセンス** の下で公開されています。詳細についてはリポジトリ内の `LICENSE` ファイルを参照してください。誰でも自由に使用、改変、再配布することが可能です。
+---
