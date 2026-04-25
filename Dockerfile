@@ -35,7 +35,12 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 # CI stage with dev tools
 FROM base as ci
 USER root
-# Install CI/dev tools
-RUN pip install --no-cache-dir pytest ruff mypy pytest-cov
+# Install CI/dev tools including Playwright for E2E tests
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN pip install --no-cache-dir pytest pytest-cov ruff mypy playwright pytest-playwright
+# Create global Playwright browsers directory and install browsers with OS deps
+RUN mkdir -p /ms-playwright \
+ && playwright install --with-deps \
+ && chown -R appuser:appuser /ms-playwright
 USER appuser
 CMD ["pytest", "-q"]
