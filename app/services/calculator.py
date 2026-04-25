@@ -285,5 +285,3 @@ class Calculator:
                         return rep
             return rep
         return result
-
-

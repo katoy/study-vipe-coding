@@ -5,4 +5,3 @@ try:
     pytest_plugins = ["pytest_playwright"]
 except Exception:
     pytest_plugins = []
-

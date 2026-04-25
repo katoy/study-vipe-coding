@@ -138,9 +138,7 @@ async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
             status_code=400,
         )
     except Exception as e:
-        logger.error(
-            "Unexpected error calculating %s: %s", body.expression, e, exc_info=True
-        )
+        logger.error("Unexpected error calculating %s: %s", body.expression, e, exc_info=True)
         return JSONResponse(
             content={"error": "システムエラーが発生しました", "expression": body.expression},
             status_code=500,
