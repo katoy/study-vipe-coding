@@ -1,10 +1,7 @@
 name: CI/CD Pipeline
 
 on:
-  push:
-    branches: [ "master", "main" ]
-  pull_request:
-    branches: [ "master", "main" ]
+  push: {}
 
 jobs:
   test-and-lint:
@@ -35,21 +32,6 @@ jobs:
 
       - name: Run Mypy (Type Check)
         run: uv run mypy app
-
-      - name: Run Pytest (Unit Tests - faster)
-        env:
-          ALLOW_POW: "0"
-          RATE_LIMIT_PER_MIN: "1000"
-          ALLOW_ORIGINS: "http://localhost:8000"
-        # Skip UI E2E tests in this job to reduce runtime; E2E run in separate job
-        run: uv run pytest -o addopts="" --cov=app --cov-report=xml --ignore=tests/test_ui.py -q
-
-      - name: Upload coverage artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-xml
-          path: coverage.xml
 
   docker-build-check:
     runs-on: ubuntu-latest

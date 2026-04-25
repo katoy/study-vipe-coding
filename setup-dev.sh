@@ -9,6 +9,12 @@ command -v pre-commit >/dev/null 2>&1 && pre-commit install || echo "pre-commit 
 mkdir -p .githooks
 cp pre-commit-hook.sh .githooks/pre-commit
 chmod +x .githooks/pre-commit
+# Install pre-push hook to run ruff and mypy before pushing
+if [ -f pre-push-hook.sh ]; then
+  cp pre-push-hook.sh .githooks/pre-push
+  chmod +x .githooks/pre-push
+fi
+
 git config core.hooksPath .githooks || true
 
-echo "Done. Local hooks enabled. Commits will run ruff and fail if lint errors exist."
+echo "Done. Local hooks enabled. Commits will run ruff; push will run ruff and mypy."
