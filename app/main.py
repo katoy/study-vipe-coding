@@ -3,7 +3,8 @@ import os
 import threading
 import time
 from pathlib import Path
-from typing import Awaitable, Callable, Dict
+from typing import Any, Awaitable, Callable, Dict
+from fractions import Fraction
 
 from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -90,11 +91,24 @@ async def calculate(
     request: Request, expression: str = Form(...), show_fraction: str | None = Form(None)
 ) -> Response:
     try:
-        result = format_result(safe_eval(expression), bool(show_fraction))
+        value = safe_eval(expression)
+        # Keep the display always numeric (decimal) for the main display
+        result = format_result(value, bool(show_fraction))
+        context: Dict[str, Any] = {
+            "value": value,
+            "result": result,
+            "is_error": False,
+            "expression": expression,
+        }
+        # Always provide fraction parts for numeric results (including Fractions)
+        from app.services.calculator import mixed_fraction_parts
+        if isinstance(value, (int, float, Fraction)):
+            context["fraction_parts"] = mixed_fraction_parts(value)
+
         return templates.TemplateResponse(
             request,
             "result.html",
-            {"result": result, "is_error": False, "expression": expression},
+            context,
         )
     except ZeroDivisionError:
         logger.warning(f"Division by zero: {expression}")
