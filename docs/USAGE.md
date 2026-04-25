@@ -30,6 +30,23 @@ curl -s -X POST http://localhost:8000/api/calculate \
 
 OpenAPI 定義: docs/openapi.yaml
 
+プログラムからの利用例:
+
+- Calculator クラス直接利用
+
+```python
+from app.services.calculator import Calculator
+calc = Calculator()
+res = calc.safe_eval("3/2")
+```
+
+- 実行中のアプリケーションで共有されるインスタンスを利用 (app.main.calc)
+
+```python
+from app.main import calc
+res = calc.safe_eval("3/2")
+```
+
 テスト:
 - 単体テスト: uv run pytest
 - E2E (Playwright): Docker 環境での実行を推奨（スクリプト: test_ui.bat / test_ui.sh）。

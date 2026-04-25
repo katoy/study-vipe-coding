@@ -24,8 +24,8 @@ Table of Contents
   - フォーム計算: POST `/calculate` -> templates/result.html（HTMX 部分更新）
   - JSON API: POST `/api/calculate` -> `{ "result": ..., "expression": ... }`
 - 計算ロジック: `app/services/calculator.py`
-  - AST ベースの安全な評価 (`safe_eval`)。混数、循環小数表記（波括弧 `{}`）等に対応。
-  - 有理数は可能な限り `fractions.Fraction` を用いて厳密に扱い、表示用の混分数や繰り返し小数表記を生成します。
+  - Calculator クラスを提供しています: `Calculator()` のインスタンスメソッド（例: `Calculator().safe_eval(expr)`）で式を評価します。アプリ起動時にモジュールレベルの `calc` インスタンスが `app.main` 内に作成されており、アプリケーション実行中にプログラムから再利用する場合は `from app.main import calc` を利用できます。
+  - AST ベースの安全な評価を行い、混数、循環小数表記（波括弧 `{}`）等に対応します（内部では `fractions.Fraction` を用いて可能な限り有理数を厳密に扱います）。
   - べき乗は環境変数 `ALLOW_POW` によりオプトイン（安全ガードあり）。
 - 簡易レート制限: `RATE_LIMIT_PER_MIN`（単一プロセス向けの in-memory 実装）。
 - CORS: `ALLOW_ORIGINS` 環境変数で制御（カンマ区切り）。

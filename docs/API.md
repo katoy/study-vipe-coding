@@ -11,3 +11,15 @@ API リファレンス
   - レスポンス: result を含む部分 HTML（templates/result.html）
 
 OpenAPI 定義は docs/openapi.yaml を参照
+
+プログラム的利用:
+
+- ライブラリとして呼び出す場合は `Calculator` クラスを利用できます。
+
+```python
+from app.services.calculator import Calculator
+calc = Calculator()
+result = calc.safe_eval("1/3")
+```
+
+- アプリ実行中の共有インスタンスを使う場合は `from app.main import calc` でアクセスできます（テストではこのインスタンスをモックすることが推奨されます）。
