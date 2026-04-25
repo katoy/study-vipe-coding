@@ -24,6 +24,7 @@ class Calculator:
         self.max_expr_length = max_expr_length
         self.max_nodes = max_nodes
         self.max_depth = max_depth
+        self.MAX_EXPR_LENGTH_ABSOLUTE = 20000
         # operator map
         self._OPS: Dict[type, Callable[..., Any]] = {
             ast.Add: operator.add,
@@ -34,11 +35,24 @@ class Calculator:
             ast.USub: operator.neg,
             ast.UAdd: operator.pos,
         }
+        allow_pow = os.getenv("ALLOW_POW", "0").lower() in ("1", "true", "yes")
+        if allow_pow:
+            self._OPS[ast.Pow] = self._safe_pow
 
-    def _safe_pow(self, left: int | float, right: int | float) -> int | float:
-        if not isinstance(right, int) or abs(right) > 20:
+    def _safe_pow(self, left: Number, right: Number) -> Number:
+        # We only allow integer exponents for safety/simplicity in this context
+        is_int_exponent = False
+        exponent_val = 0
+        if isinstance(right, int):
+            is_int_exponent = True
+            exponent_val = right
+        elif isinstance(right, Fraction) and right.denominator == 1:
+            is_int_exponent = True
+            exponent_val = right.numerator
+
+        if not is_int_exponent or abs(exponent_val) > 20:
             raise ValueError("べき乗の指数が大きすぎます")
-        if abs(left) > 1e6:
+        if abs(float(left)) > 1e6:
             raise ValueError("べき乗の底が大きすぎます")
         return operator.pow(left, right)  # type: ignore
 
@@ -94,7 +108,7 @@ class Calculator:
                 and not re.search(mixed_check, expr)
             ):
                 raise ValueError("計算式が長すぎます")
-        if len(expr) > 20000:
+        if len(expr) > self.MAX_EXPR_LENGTH_ABSOLUTE:
             raise ValueError("計算式が長すぎます")
 
         def _replace_long_decimal(m: re.Match[str]) -> str:
@@ -154,9 +168,6 @@ class Calculator:
         self._check_complexity(tree)
 
         ops = self._OPS.copy()
-        allow_pow = os.getenv("ALLOW_POW", "0").lower() in ("1", "true", "yes")
-        if allow_pow:
-            ops[ast.Pow] = self._safe_pow
 
         try:
             result = self._eval_node(tree.body, ops)
@@ -209,9 +220,7 @@ class Calculator:
         rem = num_abs % den
         return {"sign": sign, "whole": whole, "num": rem, "den": den}
 
-    def fraction_to_repeating_decimal(
-        self, frac: Fraction | int | float, max_len: int | None = None
-    ) -> str:
+    def fraction_to_repeating_decimal(self, frac: Number, max_len: int | None = None) -> str:
         if max_len is None:
             max_len = self.max_decimal_digits
         if not isinstance(frac, Fraction):
@@ -248,9 +257,7 @@ class Calculator:
             return f"{sign}{whole}.{{{rep}}}"
         return f"{sign}{whole}.{non_rep}{{{rep}}}"
 
-    def float_to_repeating_decimal(
-        self, value: Union[int, float, Fraction], max_len: int | None = None
-    ) -> str:
+    def float_to_repeating_decimal(self, value: Number, max_len: int | None = None) -> str:
         if max_len is None:
             max_len = self.max_decimal_digits
         if isinstance(value, Fraction):
@@ -259,7 +266,7 @@ class Calculator:
             frac = Fraction(value).limit_denominator(self.max_denominator)
         return self.fraction_to_repeating_decimal(frac, max_len=max_len)
 
-    def format_result(self, result: Number, show_fraction: bool) -> int | float | str:
+    def format_result(self, result: Number, show_fraction: bool) -> Number | str:
         if show_fraction and isinstance(result, (int, float, Fraction)):
             return self.float_to_mixed_fraction(result)
         if isinstance(result, (int, float, Fraction)):
@@ -280,5 +287,3 @@ class Calculator:
         return result
 
 
-# Export convenience name
-CalculatorClass = Calculator

@@ -33,15 +33,22 @@ if not HAS_PLAYWRIGHT:
 
 @pytest.fixture(scope="session", autouse=True)
 def live_server():
+    import socket
+
+    # Find a free port
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.bind(("", 0))
+    port = s.getsockname()[1]
+    s.close()
 
     # Start uvicorn in a background thread to avoid external shell wrappers
     def run_server():
-        uvicorn.run("app.main:app", host="127.0.0.1", port=8000, log_level="info")
+        uvicorn.run("app.main:app", host="127.0.0.1", port=port, log_level="info")
 
     thread = threading.Thread(target=run_server, daemon=True)
     thread.start()
 
-    url = "http://127.0.0.1:8000"
+    url = f"http://127.0.0.1:{port}"
 
     # Wait until server is up
     for _ in range(50):

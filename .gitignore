@@ -12,3 +12,8 @@ wheels/
 # Testing
 .pytest_cache/
 .coverage
+coverage.xml
+.ruff_cache/
+.DS_Store
+*.egg-info/
+tests/e2e_server.log

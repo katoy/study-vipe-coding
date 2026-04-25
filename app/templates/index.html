@@ -86,7 +86,7 @@
         <!-- stacked fraction preview will be populated via HTMX OOB update -->
       </div>
     </div>
-    <div style="font-size:0.95rem;color:var(--muted-text);margin-bottom:8px;">循環小数は 0.{3} と入力してください。</div>
+    <div style="font-size:0.95rem;color:var(--muted);margin-bottom:8px;">循環小数は 0.{3} と入力してください。</div>
     <div style="display:flex;gap:8px;margin-bottom:12px;">
       <button type="button" class="btn-num" aria-label="左波括弧" onclick="appendToExpr('{')" style="padding:4px 6px;border-radius:8px;">{</button>
       <button type="button" class="btn-num" aria-label="右波括弧" onclick="appendToExpr('}')" style="padding:4px 6px;border-radius:8px;">}</button>
@@ -115,7 +115,7 @@
     <div class="result" id="result" role="status" aria-live="polite" aria-atomic="true">{% if result %}{{ result }}{% endif %}</div>
   </form>
 </div>
-<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="/static/htmx.min.js"></script>
 <script>
 function appendToExpr(val) {
   const input = document.getElementById('expression');
