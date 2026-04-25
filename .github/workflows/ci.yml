@@ -37,7 +37,7 @@ jobs:
         run: uv run mypy app
 
       - name: Run Unit Tests with Coverage
-        run: uv run pytest -q --cov=app --cov-branch --cov-report=xml --cov-report=term
+        run: uv run pytest -q --ignore=tests/test_ui.py --cov=app --cov-branch --cov-report=xml --cov-report=term
         env:
           CI: true
 

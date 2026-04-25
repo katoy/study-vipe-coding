@@ -40,4 +40,4 @@ ignore_missing_imports = true
 files = ["app"]
 
 [tool.coverage.run]
-omit = ["app/services/convert.py"]
+omit = ["scripts/convert.py"]
