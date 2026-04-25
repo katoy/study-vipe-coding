@@ -2,7 +2,6 @@ import pytest
 
 from app.services.calculator import Calculator
 
-
 calc = Calculator()
 
 

@@ -59,7 +59,9 @@ class Calculator:
             return ops[type(node.op)](left, right)  # type: ignore
         raise ValueError("不正な式")
 
-    def _check_complexity(self, node: ast.AST, max_nodes: int | None = None, max_depth: int | None = None) -> None:
+    def _check_complexity(
+        self, node: ast.AST, max_nodes: int | None = None, max_depth: int | None = None
+    ) -> None:
         if max_nodes is None:
             max_nodes = self.max_nodes
         if max_depth is None:
@@ -86,7 +88,11 @@ class Calculator:
             long_dec_check = r"(?P<sign>-?)(?P<int>\d+)\.(?P<dec>\d{20,})"
             rep_check = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}"
             mixed_check = r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)"
-            if not re.search(long_dec_check, expr) and not re.search(rep_check, expr) and not re.search(mixed_check, expr):
+            if (
+                not re.search(long_dec_check, expr)
+                and not re.search(rep_check, expr)
+                and not re.search(mixed_check, expr)
+            ):
                 raise ValueError("計算式が長すぎます")
         if len(expr) > 20000:
             raise ValueError("計算式が長すぎます")
@@ -163,7 +169,9 @@ class Calculator:
             return result.numerator
         return result
 
-    def float_to_mixed_fraction(self, value: Union[int, float, Fraction], max_denominator: int | None = None) -> str:
+    def float_to_mixed_fraction(
+        self, value: Union[int, float, Fraction], max_denominator: int | None = None
+    ) -> str:
         if max_denominator is None:
             max_denominator = self.max_denominator
         if value == 0:
@@ -184,7 +192,9 @@ class Calculator:
             return f"{sign}{rem}/{den}"
         return f"{sign}{whole} {rem}/{den}"
 
-    def mixed_fraction_parts(self, value: Union[int, float, Fraction], max_denominator: int | None = None) -> dict[str, int | str]:
+    def mixed_fraction_parts(
+        self, value: Union[int, float, Fraction], max_denominator: int | None = None
+    ) -> dict[str, int | str]:
         if max_denominator is None:
             max_denominator = self.max_denominator
         if isinstance(value, Fraction):
@@ -199,7 +209,9 @@ class Calculator:
         rem = num_abs % den
         return {"sign": sign, "whole": whole, "num": rem, "den": den}
 
-    def fraction_to_repeating_decimal(self, frac: Fraction | int | float, max_len: int | None = None) -> str:
+    def fraction_to_repeating_decimal(
+        self, frac: Fraction | int | float, max_len: int | None = None
+    ) -> str:
         if max_len is None:
             max_len = self.max_decimal_digits
         if not isinstance(frac, Fraction):
@@ -236,7 +248,9 @@ class Calculator:
             return f"{sign}{whole}.{{{rep}}}"
         return f"{sign}{whole}.{non_rep}{{{rep}}}"
 
-    def float_to_repeating_decimal(self, value: Union[int, float, Fraction], max_len: int | None = None) -> str:
+    def float_to_repeating_decimal(
+        self, value: Union[int, float, Fraction], max_len: int | None = None
+    ) -> str:
         if max_len is None:
             max_len = self.max_decimal_digits
         if isinstance(value, Fraction):

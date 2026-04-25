@@ -2,9 +2,9 @@ import logging
 import os
 import threading
 import time
+from fractions import Fraction
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict
-from fractions import Fraction
 
 from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -57,7 +57,9 @@ async def rate_limit_middleware(
             entry = _rate_store.get(client_host)
             if entry is None or now - entry["start"] >= _RATE_LIMIT_WINDOW:
                 _rate_store[client_host] = {"count": 1, "start": now}
-                expired = [k for k, v in _rate_store.items() if now - v["start"] >= _RATE_LIMIT_WINDOW]
+                expired = [
+                    k for k, v in _rate_store.items() if now - v["start"] >= _RATE_LIMIT_WINDOW
+                ]
                 for k in expired:
                     del _rate_store[k]
             else:
