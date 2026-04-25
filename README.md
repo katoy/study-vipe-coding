@@ -55,6 +55,41 @@ uv run uvicorn app.main:app --reload --port 8000
 
 ブラウザで `http://localhost:8000` を開くと UI が表示されます。
 
+
+### Docker スクリプト
+
+リポジトリには開発者向けに Docker を使った起動・CI 実行スクリプトを用意しています。
+
+- サーバ起動（Linux/macOS）:
+
+```bash
+./run.sh
+```
+
+- サーバ起動（Windows）:
+
+```powershell
+run.bat
+```
+
+これらは Docker の `base`（runtime）ステージをビルドしてコンテナを起動します（ポート: 8000）。
+
+- CI 実行（Linux/macOS）:
+
+```bash
+./ci.sh
+```
+
+- CI 実行（Windows）:
+
+```powershell
+ci.bat
+```
+
+CI スクリプトは Docker の `ci` ステージをビルドし、コンテナ内で ruff/mypy/pytest 等のチェックを実行します。Docker 環境が整っていればローカルで CI 相当の検証が可能です。
+
+
+
 ---
 
 ## ファイル一覧
