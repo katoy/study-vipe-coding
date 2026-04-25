@@ -9,7 +9,6 @@ build/
 dist/
 .git/
 .gitignore
-tests/
 *.egg-info
 .pytest_cache/
 .cache/
