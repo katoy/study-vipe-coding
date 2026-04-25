@@ -98,3 +98,48 @@ PR・Issue を歓迎します。
 - 備考: `setup-dev.sh` は実行環境に `pre-commit` をインストールし、`.githooks` を git の hooksPath として設定します。CI は引き続き別途動作します。
 
 ライセンスは MIT です（`LICENSE` を参照）。
+
+---
+
+## ファイル一覧
+主要なファイル・ディレクトリと役割:
+
+- app/
+  - main.py - FastAPI アプリケーションのエントリポイント（ルーティング、テンプレート応答、API）。
+  - services/calculator.py - 計算ロジックと表示用ヘルパー（安全な AST 評価、Fraction ベースの扱い、分数/循環小数の生成）。
+  - templates/ - Jinja2 テンプレート（index.html, result.html）。
+  - static/ - 静的資産（favicon.svg、demo GIF など）。
+- tests/ - ユニットテスト群（pytest）。
+- docs/ - ドキュメント（OpenAPI 等。存在する場合）。
+- setup-dev.sh - ローカル開発用フックのインストールスクリプト。
+- .github/workflows/ - CI 設定（lint / test ワークフロー）。
+
+## カバレッジ計測方法
+ローカルでのカバレッジ測定方法:
+
+1. pytest と coverage を使って実行（例）:
+
+```bash
+# XML と HTML 両方を出力する例
+pytest --cov=app --cov-report=xml:coverage.xml --cov-report=html:coverage_html
+```
+
+2. 出力結果は `coverage.xml`（CI 向け）および `coverage_html/`（ブラウザで閲覧可能）に生成されます。
+
+※ 本リポジトリではテスト実行時に coverage を生成する CI 設定がある場合があります。ローカルでの実行は上記コマンドを推奨します。
+
+### 現在のカバレッジ結果（リポジトリ内 coverage.xml より）
+- 行カバレッジ: 226 / 226 (100%)
+- 分岐カバレッジ: 70 / 70 (100%)
+
+（coverage.xml をリポジトリに含めています。最新の結果は CI 実行やローカル測定で再生成してください。）
+
+## デモ動画
+デモ用アニメーションは static に配置しています。ブラウザで確認するにはサーバ起動後に以下にアクセスしてください（あるいはリポジトリ内のファイルを参照）:
+
+- `app/static/calculator_demo.gif` — 簡易デモ（GIF）
+- `app/static/calculator_demo.webp` — WebP 版
+
+画面を実際に操作するデモを別途用意する場合はここにリンクを追加してください（YouTube 等）。
+
+---
