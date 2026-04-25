@@ -2,7 +2,8 @@ import ast
 import operator
 import os
 import re
-from typing import Any, Callable, Dict
+from fractions import Fraction
+from typing import Any, Callable, Dict, cast
 
 
 def _safe_pow(left: int | float, right: int | float) -> int | float:
@@ -11,7 +12,8 @@ def _safe_pow(left: int | float, right: int | float) -> int | float:
         raise ValueError("べき乗の指数が大きすぎます")
     if abs(left) > 1e6:
         raise ValueError("べき乗の底が大きすぎます")
-    return operator.pow(left, right)  # type: ignore[return-value]
+    # operator.pow is untyped; cast to expected numeric return
+    return cast(int | float, operator.pow(left, right))
 
 
 _OPS: Dict[type, Callable[..., Any]] = {
@@ -66,13 +68,13 @@ def safe_eval(expr: str) -> int | float:
         raise ValueError("計算式が長すぎます")
 
     # Preprocess repeating decimals like "0.(3)" or "1.2(34)" into rational numer/denom
-    def _replace_repeating(m: re.Match) -> str:
+    def _replace_repeating(m: re.Match[str]) -> str:
         # Groups: sign, whole (may be empty), nonrep (may be empty), rep (required)
-        sign = m.group('sign') or ''
-        whole = m.group('whole') or ''
-        nonrep = m.group('nonrep') or ''
-        rep = m.group('rep')
-        W = int(whole) if whole != '' else 0
+        sign = m.group("sign") or ""
+        whole = m.group("whole") or ""
+        nonrep = m.group("nonrep") or ""
+        rep = m.group("rep")
+        W = int(whole) if whole != "" else 0
         A = nonrep
         B = rep
         mlen = len(A)
@@ -82,28 +84,28 @@ def safe_eval(expr: str) -> int | float:
             den = (10**mlen) * (10**nlen - 1)
         else:
             num = int(B)
-            den = (10**nlen - 1)
+            den = 10**nlen - 1
         total_num = W * den + num
-        if sign == '-':
+        if sign == "-":
             total_num = -total_num
         # return as a numeric division literal that safe_eval can parse
-        return f'({total_num}/{den})'
+        return f"({total_num}/{den})"
 
     # pattern accepting only {...} for repeating decimals
     rep_pattern = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}"
     expr = re.sub(rep_pattern, _replace_repeating, expr)
 
     # Preprocess mixed fractions like "2 2/3" -> "(2 + 2/3)" and negatives "-1 1/4" -> "- (1 + 1/4)"
-    def _replace_mixed(m: re.Match) -> str:
-        sign = m.group('sign') or ''
-        whole = m.group('whole')
-        num = m.group('num')
-        den = m.group('den')
-        if sign == '-':
+    def _replace_mixed(m: re.Match[str]) -> str:
+        sign = m.group("sign") or ""
+        whole = m.group("whole")
+        num = m.group("num")
+        den = m.group("den")
+        if sign == "-":
             # -1 1/4 means -(1 + 1/4)
-            return f'(-({whole} + {num}/{den}))'
+            return f"(-({whole} + {num}/{den}))"
         # positive or no sign
-        return f'({whole} + {num}/{den})'
+        return f"({whole} + {num}/{den})"
 
     pattern = r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)"
     expr = re.sub(pattern, _replace_mixed, expr)
@@ -161,7 +163,7 @@ def float_to_mixed_fraction(value: float, max_denominator: int = 1000) -> str:
     return f"{sign}{whole} {rem}/{den}"
 
 
-def fraction_to_repeating_decimal(frac, max_len: int = 50) -> str:
+def fraction_to_repeating_decimal(frac: Fraction | int | float, max_len: int = 50) -> str:
     """Convert a Fraction to a decimal string, using braces for repeating part.
 
     Examples:
@@ -186,10 +188,10 @@ def fraction_to_repeating_decimal(frac, max_len: int = 50) -> str:
         return f"{sign}{whole}"
 
     # Long division to produce decimal digits and detect repeating remainder
-    decimals = []
-    seen = { }
+    decimals: list[str] = []
+    seen: dict[int, int] = {}
     idx = 0
-    repeat_start = None
+    repeat_start: int | None = None
     while rem != 0 and idx < max_len:
         if rem in seen:
             repeat_start = seen[rem]
@@ -206,6 +208,7 @@ def fraction_to_repeating_decimal(frac, max_len: int = 50) -> str:
         return f"{sign}{whole}." + ("".join(decimals) if decimals else "0")
 
     # repeating — use braces instead of parentheses
+    assert repeat_start is not None
     non_rep = "".join(decimals[:repeat_start])
     rep = "".join(decimals[repeat_start:])
     if non_rep == "":
@@ -215,6 +218,7 @@ def fraction_to_repeating_decimal(frac, max_len: int = 50) -> str:
 
 def float_to_repeating_decimal(value: float, max_denominator: int = 1000) -> str:
     from fractions import Fraction
+
     frac = Fraction(value).limit_denominator(max_denominator)
     return fraction_to_repeating_decimal(frac)
 
