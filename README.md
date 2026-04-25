@@ -83,4 +83,18 @@ uv run mypy app
 
 貢献・ライセンス
 
-PR・Issue を歓迎します。ライセンスは MIT です（`LICENSE` を参照）。
+PR・Issue を歓迎します。
+
+開発環境セットアップ（ローカルフック）
+
+- リポジトリには `setup-dev.sh` スクリプトが含まれており、ローカルでの開発支援フックをインストールします。
+  - 実行: `./setup-dev.sh`
+  - インストールされるフック:
+    - `.githooks/pre-commit` : コミット時に `ruff check app tests` を実行します。
+    - `.githooks/pre-push` : プッシュ時に `ruff check app tests` と `mypy app` を実行し、失敗すると push をブロックします。
+
+- 目的: コード品質（Linter / 型チェック）をローカル開発で早期に検出し、CI 前に不整合を防ぐためです。
+
+- 備考: `setup-dev.sh` は実行環境に `pre-commit` をインストールし、`.githooks` を git の hooksPath として設定します。CI は引き続き別途動作します。
+
+ライセンスは MIT です（`LICENSE` を参照）。
