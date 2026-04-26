@@ -29,7 +29,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allow_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -96,21 +96,21 @@ async def calculate(
             context["fraction_parts"] = calc.mixed_fraction_parts(value)
         return templates.TemplateResponse(request, "result.html", context)
     except ZeroDivisionError:
-        logger.warning(f"Division by zero: {expression}")
+        logger.warning("Division by zero: %s", expression)
         return templates.TemplateResponse(
             request,
             "result.html",
             {"result": "0で割ることはできません", "is_error": True, "expression": expression},
         )
     except (SyntaxError, ValueError) as e:
-        logger.warning(f"Invalid expression: {expression} - {e}")
+        logger.warning("Invalid expression: %s - %s", expression, e)
         return templates.TemplateResponse(
             request,
             "result.html",
             {"result": "計算式が正しくありません", "is_error": True, "expression": expression},
         )
     except Exception as e:
-        logger.error(f"Unexpected error calculating {expression}: {e}", exc_info=True)
+        logger.error("Unexpected error calculating %s: %s", expression, e, exc_info=True)
         raise
 
 
@@ -126,19 +126,19 @@ async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
         result = calc.format_result(value, body.show_fraction)
         return JSONResponse(content={"result": result, "expression": body.expression})
     except ZeroDivisionError:
-        logger.warning(f"Division by zero: {body.expression}")
+        logger.warning("Division by zero: %s", body.expression)
         return JSONResponse(
             content={"error": "0で割ることはできません", "expression": body.expression},
             status_code=400,
         )
     except (SyntaxError, ValueError) as e:
-        logger.warning(f"Invalid expression: {body.expression} - {e}")
+        logger.warning("Invalid expression: %s - %s", body.expression, e)
         return JSONResponse(
             content={"error": "計算式が正しくありません", "expression": body.expression},
             status_code=400,
         )
     except Exception as e:
-        logger.error(f"Unexpected error calculating {body.expression}: {e}", exc_info=True)
+        logger.error("Unexpected error calculating %s: %s", body.expression, e, exc_info=True)
         return JSONResponse(
             content={"error": "システムエラーが発生しました", "expression": body.expression},
             status_code=500,
