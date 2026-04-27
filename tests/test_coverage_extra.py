@@ -36,7 +36,7 @@ def test_long_decimal_replacement_positive_and_negative() -> None:
     calc = Calculator()
     dec = "1." + ("1" * 20)
     res = calc.safe_eval(dec)
-    expected = Fraction(int("1" + ("1" * 20)), 10 ** 20)
+    expected = Fraction(int("1" + ("1" * 20)), 10**20)
     assert Fraction(res) == expected
 
     neg = "-1." + ("1" * 20)
@@ -57,7 +57,7 @@ def test_fraction_to_repeating_decimal_maxlen_truncates() -> None:
     r = calc.fraction_to_repeating_decimal(Fraction(1, 13), max_len=3)
     assert "." in r
     assert "{" not in r
-    assert len(r.split('.', 1)[1]) == 3
+    assert len(r.split(".", 1)[1]) == 3
 
 
 def test_format_result_handles_float_conversion_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -66,7 +66,7 @@ def test_format_result_handles_float_conversion_error(monkeypatch: pytest.Monkey
     monkeypatch.setattr(
         Calculator, "float_to_repeating_decimal", lambda self, value, max_len=None: "0.5abc"
     )
-    out = calc.format_result(1/2, show_fraction=False)
+    out = calc.format_result(1 / 2, show_fraction=False)
     # Should return the raw string since float() will fail to parse
     assert out == "0.5abc"
 
@@ -76,7 +76,7 @@ def test_fraction_to_repeating_decimal_no_repeat_with_small_maxlen() -> None:
     r = calc.fraction_to_repeating_decimal(Fraction(1, 13), max_len=2)
     assert "." in r
     assert "{" not in r
-    assert len(r.split('.', 1)[1]) == 2
+    assert len(r.split(".", 1)[1]) == 2
 
 
 def test_division_with_floats_uses_fallback_branch() -> None:
@@ -101,11 +101,11 @@ def test_abs_length_raises_again() -> None:
 def test_format_result_returns_rep_when_decimal_too_long() -> None:
     calc = Calculator()
     # choose a terminating fraction with many decimal places (2^20 denominator)
-    val = Fraction(1, 2 ** 20)
+    val = Fraction(1, 2**20)
     rep = calc.format_result(val, show_fraction=False)
     assert isinstance(rep, str)
     assert "." in rep
-    dec_part = rep.split('.', 1)[1]
+    dec_part = rep.split(".", 1)[1]
     assert len(dec_part) > 15
 
 
