@@ -72,7 +72,8 @@ uv run uvicorn app.main:app --reload --port 8000
 run.bat
 ```
 
-これらは Docker の `base`（runtime）ステージをビルドしてコンテナを起動します（ポート: 8000）。
+これらは Docker の `base`（runtime）ステージをビルドしてコンテナを起動します。
+ローカル実行では `PORT` が未設定なら 8000 を使い、Cloud Run では割り当てられた `PORT` に従います。
 
 - CI 実行（Linux/macOS）:
 
@@ -87,6 +88,12 @@ ci.bat
 ```
 
 CI スクリプトは Docker の `ci` ステージをビルドし、コンテナ内で ruff/mypy/pytest 等のチェックを実行します。Docker 環境が整っていればローカルで CI 相当の検証が可能です。
+
+### Cloud Run
+
+このアプリは Cloud Run 上でもそのまま動かせます。FastAPI が HTML と JSON API の両方を返し、コンテナは Cloud Run が渡す `PORT` で待ち受けます。
+
+デプロイの基本形は、Docker イメージをビルドして Cloud Run にデプロイする構成です。レート制限は in-memory 実装のため、Cloud Run で複数インスタンスに分かれるとインスタンス単位の制限になります。
 
 
 
