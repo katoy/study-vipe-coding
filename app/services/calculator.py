@@ -2,6 +2,7 @@ import ast
 import operator
 import os
 import re
+from decimal import Decimal
 from fractions import Fraction
 from typing import Any, Callable, Dict, Union
 
@@ -194,6 +195,8 @@ class Calculator:
                 frac = -frac
         else:
             frac = Fraction(value).limit_denominator(max_denominator)
+            if frac == 0 and value != 0:
+                frac = Fraction(format(value, ".15g"))
         num = frac.numerator
         den = frac.denominator
         whole, rem = divmod(abs(num), den)
@@ -212,6 +215,8 @@ class Calculator:
             frac = value
         else:
             frac = Fraction(value).limit_denominator(max_denominator)
+            if frac == 0 and value != 0:
+                frac = Fraction(format(value, ".15g"))
         num = frac.numerator
         den = frac.denominator
         sign = "-" if num < 0 else ""
@@ -264,6 +269,13 @@ class Calculator:
             frac = value
         else:
             frac = Fraction(value).limit_denominator(self.max_denominator)
+            if frac == 0 and value != 0:
+                # Very small non-zero floats can collapse to 0 under limit_denominator().
+                # Preserve them as a decimal string instead of losing the value.
+                rounded = format(value, ".15g")
+                if "e" in rounded or "E" in rounded:
+                    return format(Decimal(rounded), "f").rstrip("0").rstrip(".")
+                return rounded
         return self.fraction_to_repeating_decimal(frac, max_len=max_len)
 
     def format_result(self, result: Number, show_fraction: bool) -> Number | str:

@@ -63,6 +63,13 @@ def test_decimal(client: Any) -> None:
     assert data.get("result") == 3
 
 
+def test_tiny_decimal_multiplication(client: Any) -> None:
+    data, code = calc(client, "0.00001 * 0.00001")
+    assert code == 200
+    assert data.get("result") != 0
+    assert data.get("result") == pytest.approx(1e-10)
+
+
 def test_percent(client: Any) -> None:
     data, code = calc(client, "10 % 3")
     assert code == 200
@@ -144,6 +151,7 @@ def test_calculate_html_success(client: Any) -> None:
     assert res.status_code == 200
     # The result should be present in the returned HTML
     assert "5" in res.text
+    assert 'class="result visually-hidden"' in res.text
 
 
 def test_calculate_html_divide_by_zero(client: Any) -> None:
@@ -176,6 +184,14 @@ def test_api_show_fraction(client: Any) -> None:
     assert res.status_code == 200
     j = res.json()
     assert j.get("result") == "1 1/2"
+
+
+def test_api_tiny_decimal_show_fraction(client: Any) -> None:
+    res = client.post(
+        "/api/calculate", json={"expression": "0.00001 * 0.00001", "show_fraction": True}
+    )
+    assert res.status_code == 200
+    assert res.json().get("result") == "1/10000000000"
 
 
 def test_api_repeating_decimal_default(client: Any) -> None:
