@@ -7,6 +7,6 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-echo Starting Docker container on port 8000...
-docker run --rm -p 8000:8000 calculator-app
+echo Starting Docker container on port 8080...
+docker run --rm -p 8080:8080 calculator-app
 pause
