@@ -1,9 +1,10 @@
 import importlib
+from typing import Any
 
 from fastapi.testclient import TestClient
 
 
-def reload_app_with_env(monkeypatch, rate_limit_value: str):
+def reload_app_with_env(monkeypatch: Any, rate_limit_value: str) -> Any:
     monkeypatch.setenv("RATE_LIMIT_PER_MIN", rate_limit_value)
     import app.main as main
 
@@ -11,7 +12,7 @@ def reload_app_with_env(monkeypatch, rate_limit_value: str):
     return main.app
 
 
-def test_rate_limiting_blocks_after_limit(monkeypatch):
+def test_rate_limiting_blocks_after_limit(monkeypatch: Any) -> None:
     app = reload_app_with_env(monkeypatch, "2")
     client = TestClient(app)
 

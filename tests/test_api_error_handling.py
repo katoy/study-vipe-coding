@@ -1,10 +1,12 @@
+from typing import Any
+
 from fastapi.testclient import TestClient
 
 from app.main import app
 
 
-def test_api_unexpected_error(monkeypatch):
-    def raise_err(expr):
+def test_api_unexpected_error(monkeypatch: Any) -> None:
+    def raise_err(expr: Any) -> Any:
         raise RuntimeError("boom")
 
     # Patch the calculator instance used by app.main
@@ -16,8 +18,8 @@ def test_api_unexpected_error(monkeypatch):
         assert "error" in data and "システムエラーが発生しました" in data["error"]
 
 
-def test_html_unexpected_error(monkeypatch):
-    def raise_err(expr):
+def test_html_unexpected_error(monkeypatch: Any) -> None:
+    def raise_err(expr: Any) -> Any:
         raise RuntimeError("boom")
 
     # Patch the instance used by app.main

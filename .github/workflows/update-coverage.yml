@@ -1,0 +1,49 @@
+name: Update coverage in README
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  update-coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install test deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov
+
+      - name: Run tests and generate coverage.xml
+        run: |
+          pytest --maxfail=1 -q --disable-warnings --cov=app --cov-report=xml:coverage.xml
+
+      - name: Update README coverage
+        run: |
+          python scripts/update_readme_coverage.py coverage.xml README.md
+
+      - name: Commit README if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "No changes to commit"
+          else
+            git add README.md
+            git commit -m "Update README coverage (automated)\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+            git push
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

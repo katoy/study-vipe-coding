@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from app.services.calculator import Calculator
@@ -5,38 +7,38 @@ from app.services.calculator import Calculator
 calc = Calculator()
 
 
-def test_safe_eval_basic_arithmetic():
+def test_safe_eval_basic_arithmetic() -> None:
     assert calc.safe_eval("1+2*3-4/2") == 5
 
 
-def test_safe_eval_division_and_normalization():
+def test_safe_eval_division_and_normalization() -> None:
     assert calc.safe_eval("5/2") == 2.5
     assert calc.safe_eval("2.0") == 2
 
 
-def test_safe_eval_zero_division():
+def test_safe_eval_zero_division() -> None:
     with pytest.raises(ZeroDivisionError):
         calc.safe_eval("1/0")
 
 
-def test_safe_eval_syntax_error():
+def test_safe_eval_syntax_error() -> None:
     with pytest.raises(SyntaxError):
         calc.safe_eval("1++")
 
 
-def test_safe_eval_length_guard():
+def test_safe_eval_length_guard() -> None:
     expr = "1" * 101
     with pytest.raises(ValueError):
         calc.safe_eval(expr)
 
 
-def test_safe_eval_complexity_depth():
+def test_safe_eval_complexity_depth() -> None:
     expr = "(" * 62 + "1" + ")" * 62
     with pytest.raises(ValueError):
         calc.safe_eval(expr)
 
 
-def test_power_operator_behavior(monkeypatch):
+def test_power_operator_behavior(monkeypatch: Any) -> None:
     # pow is disallowed by default
     with pytest.raises(ValueError):
         Calculator().safe_eval("2**3")
@@ -54,7 +56,7 @@ def test_power_operator_behavior(monkeypatch):
         Calculator().safe_eval("1000001**2")
 
 
-def test_float_to_mixed_fraction_examples():
+def test_float_to_mixed_fraction_examples() -> None:
     assert calc.float_to_mixed_fraction(1.75) == "1 3/4"
     assert calc.float_to_mixed_fraction(0.5) == "1/2"
     assert calc.float_to_mixed_fraction(2.0) == "2"
@@ -62,36 +64,36 @@ def test_float_to_mixed_fraction_examples():
     assert calc.float_to_mixed_fraction(0.3333333333333, max_denominator=100) == "1/3"
 
 
-def test_non_numeric_constant_raises():
+def test_non_numeric_constant_raises() -> None:
     with pytest.raises(ValueError):
         calc.safe_eval("'hi'")
 
 
-def test_name_node_raises():
+def test_name_node_raises() -> None:
     with pytest.raises(ValueError):
         calc.safe_eval("abc")
 
 
-def test_unary_ops():
+def test_unary_ops() -> None:
     assert calc.safe_eval("-3") == -3
     assert calc.safe_eval("+4") == 4
 
 
-def test_float_zero_fraction():
+def test_float_zero_fraction() -> None:
     assert calc.float_to_mixed_fraction(0.0) == "0"
 
 
-def test_safe_eval_mixed_fraction_input():
+def test_safe_eval_mixed_fraction_input() -> None:
     res = calc.safe_eval("2 2/3+3")
     assert abs(res - (17 / 3)) < 1e-9
 
 
-def test_safe_eval_negative_mixed_fraction_input():
+def test_safe_eval_negative_mixed_fraction_input() -> None:
     res = calc.safe_eval("-1 1/4 + 2")
     assert abs(res - 0.75) < 1e-9
 
 
-def test_fraction_to_repeating_decimal_examples():
+def test_fraction_to_repeating_decimal_examples() -> None:
     from fractions import Fraction
 
     calc_local = Calculator()
@@ -105,18 +107,18 @@ def test_fraction_to_repeating_decimal_examples():
     assert calc_local.float_to_repeating_decimal(0.5) == "0.5"
 
 
-def test_safe_eval_repeating_nonrep_part():
+def test_safe_eval_repeating_nonrep_part() -> None:
     res = calc.safe_eval("1.2{34}")
     assert abs(res - (611 / 495)) < 1e-9
     res2 = calc.safe_eval("-1.2{34}")
     assert abs(res2 - (-(611 / 495))) < 1e-9
 
 
-def test_fraction_to_repeating_decimal_integer_input():
+def test_fraction_to_repeating_decimal_integer_input() -> None:
     assert Calculator().fraction_to_repeating_decimal(2) == "2"
 
 
-def test_fraction_to_repeating_decimal_nonrep_part():
+def test_fraction_to_repeating_decimal_nonrep_part() -> None:
     from fractions import Fraction
 
     calc_local = Calculator()
