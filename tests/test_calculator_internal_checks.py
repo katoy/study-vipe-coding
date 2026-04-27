@@ -1,26 +1,27 @@
 import ast
+from typing import Any
 
 import pytest
 
 from app.services import calculator
 
 
-def test_check_complexity_count_exceeded():
+def test_check_complexity_count_exceeded() -> None:
     tree = ast.parse("1+2", mode="eval")
     calc = calculator.Calculator()
     with pytest.raises(ValueError):
         calc._check_complexity(tree, max_nodes=1, max_depth=60)
 
 
-def test_check_complexity_depth_exceeded():
+def test_check_complexity_depth_exceeded() -> None:
     tree = ast.parse("(" * 5 + "1" + ")" * 5, mode="eval")
     calc = calculator.Calculator()
     with pytest.raises(ValueError):
         calc._check_complexity(tree, max_nodes=2000, max_depth=0)
 
 
-def test_recursion_handling(monkeypatch):
-    def _raise_recursion(self, node, ops):
+def test_recursion_handling(monkeypatch: Any) -> None:
+    def _raise_recursion(self: Any, node: Any, ops: Any) -> Any:
         raise RecursionError()
 
     monkeypatch.setattr(calculator.Calculator, "_eval_node", _raise_recursion)

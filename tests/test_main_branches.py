@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 from fastapi.testclient import TestClient
 from starlette.requests import Request
@@ -7,7 +8,7 @@ from starlette.responses import Response
 from app.main import app, rate_limit_middleware
 
 
-def test_rate_limit_middleware_client_missing():
+def test_rate_limit_middleware_client_missing() -> None:
     scope = {
         "type": "http",
         "method": "GET",
@@ -16,7 +17,7 @@ def test_rate_limit_middleware_client_missing():
     }
     req = Request(scope)
 
-    async def next_fn(request):
+    async def next_fn(request: Request) -> Response:
         return Response("ok")
 
     resp = asyncio.run(rate_limit_middleware(req, next_fn))
@@ -24,7 +25,7 @@ def test_rate_limit_middleware_client_missing():
     assert resp.status_code == 200
 
 
-def test_show_fraction_non_numeric(monkeypatch):
+def test_show_fraction_non_numeric(monkeypatch: Any) -> None:
     # Make Calculator.safe_eval return a non-numeric value while show_fraction is True
     monkeypatch.setattr(
         "app.services.calculator.Calculator.safe_eval", lambda self, expr: "non-numeric"

@@ -1,5 +1,6 @@
 import threading
 import time
+from typing import Any
 
 import httpx
 import pytest
@@ -20,19 +21,19 @@ if not HAS_PLAYWRIGHT:
     class Page:  # type: ignore
         pass
 
-    def expect(locator):  # type: ignore
+    def expect(locator: Any) -> Any:  # type: ignore
         class Dummy:
-            def to_have_value(self, *a, **k):
+            def to_have_value(self: Any, *a: Any, **k: Any) -> Any:
                 return None
 
-            def to_contain_text(self, *a, **k):
+            def to_contain_text(self: Any, *a: Any, **k: Any) -> Any:
                 return None
 
         return Dummy()
 
 
 @pytest.fixture(scope="session", autouse=True)
-def live_server():
+def live_server() -> Any:
     import socket
 
     # Find a free port
@@ -42,7 +43,7 @@ def live_server():
     s.close()
 
     # Start uvicorn in a background thread to avoid external shell wrappers
-    def run_server():
+    def run_server() -> Any:
         uvicorn.run("app.main:app", host="127.0.0.1", port=port, log_level="info")
 
     thread = threading.Thread(target=run_server, daemon=True)
