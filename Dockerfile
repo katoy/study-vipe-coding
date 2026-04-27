@@ -29,8 +29,9 @@ EXPOSE 8000
 # Switch to non-root user for security
 USER appuser
 
-# Run the FastAPI application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the FastAPI application.
+# Cloud Run injects PORT; local docker run falls back to 8000.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
 
 # CI stage with dev tools
 FROM base AS ci
