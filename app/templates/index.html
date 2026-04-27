@@ -63,9 +63,9 @@
     /* Typography adjustments for readability */
     .fraction { display:inline-flex; flex-direction:row; align-items:center; justify-content:center; font-weight:800; color:var(--text); min-width:max-content; }
     .fraction .whole { font-size:1rem; margin-right:12px; white-space:nowrap; }
-    .fraction .stack { display:inline-flex; flex-direction:column; align-items:center; min-width:max-content; }
-    .fraction .num, .fraction .den { padding:0 6px; text-align:center; white-space:nowrap; font-weight:800; color:var(--text); }
-    .fraction .bar { border-top:2px solid var(--text); width:auto; min-width:40px; box-sizing:border-box; margin:2px 0; }
+    .fraction .stack { display:inline-flex; flex-direction:column; align-items:center; min-width:max-content; width:max-content; }
+    .fraction .num, .fraction .den { display:block; padding:0 6px; text-align:center; white-space:nowrap; font-weight:800; color:var(--text); }
+    .fraction .bar { display:block; border-top:2px solid currentColor; width:100%; min-width:0; box-sizing:border-box; margin:2px 0; }
 
     /* Result / status */
     .result { text-align:center; margin-top:16px; color:var(--danger); font-size:0.95rem; min-height:20px; font-weight:700; }
@@ -127,6 +127,18 @@ function deleteLastChar() {
   if (!input.value) return;
   input.value = input.value.slice(0, -1);
   input.focus();
+}
+
+function adjustFractionBars(root) {
+  const scope = root || document;
+  const stacks = scope.querySelectorAll('.fraction .stack');
+  stacks.forEach((stack) => {
+    const den = stack.querySelector('.den');
+    const bar = stack.querySelector('.bar');
+    if (!den || !bar) return;
+    const width = Math.ceil(den.getBoundingClientRect().width);
+    bar.style.width = width > 0 ? `${width}px` : '';
+  });
 }
 
 // Convert repeating-decimal notation like 0.(3) or 1.2(34) into exact rational literal (num/den)
@@ -198,7 +210,13 @@ function adjustAllButtons() {
 }
 
 window.addEventListener('DOMContentLoaded', adjustAllButtons);
-window.addEventListener('resize', () => { window.requestAnimationFrame(adjustAllButtons); });
+window.addEventListener('DOMContentLoaded', () => { adjustFractionBars(document); });
+window.addEventListener('resize', () => {
+  window.requestAnimationFrame(() => {
+    adjustAllButtons();
+    adjustFractionBars(document);
+  });
+});
 
 // If buttons change (e.g., language or dynamic text), observe mutations
 const btnContainer = document.querySelector('.buttons');
@@ -206,6 +224,10 @@ if (btnContainer && window.MutationObserver) {
   const mo = new MutationObserver(() => adjustAllButtons());
   mo.observe(btnContainer, { childList: true, subtree: true, characterData: true });
 }
+
+document.body.addEventListener('htmx:afterSwap', (event) => {
+  window.requestAnimationFrame(() => adjustFractionBars(event.target || document));
+});
 </script>
 </body>
 </html>

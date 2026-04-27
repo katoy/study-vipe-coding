@@ -75,6 +75,7 @@ def test_calculator_basic_addition(page: Page, live_server: str) -> None:
 
     # Result is replaced in the expression input
     expect(page.locator("#expression")).to_have_value("5")
+    expect(page.locator("#result")).to_have_text("")
 
 
 def test_calculator_divide_by_zero(page: Page, live_server: str) -> None:
@@ -95,3 +96,28 @@ def test_ac_button_clears_display(page: Page, live_server: str) -> None:
 
     page.get_by_text("AC", exact=True).click()
     expect(page.locator("#expression")).to_have_value("")
+
+
+def test_fraction_bar_tracks_denominator_width(page: Page, live_server: str) -> None:
+    page.goto(live_server)
+    page.get_by_text("1", exact=True).click()
+    page.get_by_text("÷", exact=True).click()
+    page.get_by_text("2", exact=True).click()
+    page.get_by_text("6", exact=True).click()
+    page.get_by_text("0", exact=True).click()
+    page.get_by_text("1", exact=True).click()
+    page.get_by_text("=", exact=True).click()
+
+    expect(page.locator(".fraction .den")).to_be_visible()
+    page.wait_for_function(
+        """
+        () => {
+          const den = document.querySelector('.fraction .den');
+          const bar = document.querySelector('.fraction .bar');
+          if (!den || !bar) return false;
+          const denWidth = den.getBoundingClientRect().width;
+          const barWidth = bar.getBoundingClientRect().width;
+          return Math.abs(denWidth - barWidth) <= 2;
+        }
+        """
+    )

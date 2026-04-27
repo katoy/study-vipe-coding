@@ -124,3 +124,19 @@ def test_fraction_to_repeating_decimal_nonrep_part() -> None:
     calc_local = Calculator()
     assert calc_local.fraction_to_repeating_decimal(Fraction(1, 6)) == "0.1{6}"
     assert calc_local.float_to_repeating_decimal(1.0 / 6.0) == "0.1{6}"
+
+
+def test_float_to_repeating_decimal_small_nonzero_decimal() -> None:
+    calc_local = Calculator()
+    assert calc_local.float_to_repeating_decimal(0.0001) == "0.0001"
+
+
+def test_float_to_mixed_fraction_small_nonzero_decimal() -> None:
+    calc_local = Calculator()
+    assert calc_local.float_to_mixed_fraction(1e-10) == "1/10000000000"
+    assert calc_local.mixed_fraction_parts(1e-10) == {
+        "sign": "",
+        "whole": 0,
+        "num": 1,
+        "den": 10000000000,
+    }
