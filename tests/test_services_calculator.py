@@ -17,6 +17,11 @@ def test_safe_eval_division_and_normalization() -> None:
     assert calc.safe_eval("2.0") == 2
 
 
+def test_safe_eval_decimal_arithmetic_keeps_exact_value() -> None:
+    assert calc.safe_eval("0.1 + 0.2") == Fraction(3, 10)
+    assert calc.safe_eval("0.00001 * 0.00001") == Fraction(1, 10**10)
+
+
 def test_safe_eval_zero_division() -> None:
     with pytest.raises(ZeroDivisionError):
         calc.safe_eval("1/0")
@@ -144,3 +149,14 @@ def test_safe_eval_preserves_decimal_literal_precision() -> None:
     calc_local = Calculator()
     result = calc_local.safe_eval("0.100001")
     assert result == Fraction(100001, 1000000)
+
+
+def test_safe_eval_repeating_decimal_display_can_be_reused() -> None:
+    calc_local = Calculator()
+    display = calc_local.fraction_to_repeating_decimal(calc_local.safe_eval("1/3267"))
+    assert calc_local.safe_eval(f"{display}*2") == Fraction(2, 3267)
+
+
+def test_safe_eval_parenthesized_repeating_decimal_rejected() -> None:
+    with pytest.raises((SyntaxError, ValueError)):
+        calc.safe_eval("0.(3)")
