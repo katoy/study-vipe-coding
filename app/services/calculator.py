@@ -2,11 +2,10 @@ import ast
 import operator
 import os
 import re
-from decimal import Decimal
 from fractions import Fraction
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, Union, cast
 
-Number = Union[int, float, Fraction]
+Number = Union[int, Fraction]
 
 
 class Calculator:
@@ -42,24 +41,34 @@ class Calculator:
 
     def _safe_pow(self, left: Number, right: Number) -> Number:
         # We only allow integer exponents for safety/simplicity in this context
-        is_int_exponent = False
-        exponent_val = 0
         if isinstance(right, int):
-            is_int_exponent = True
             exponent_val = right
         elif isinstance(right, Fraction) and right.denominator == 1:
-            is_int_exponent = True
             exponent_val = right.numerator
-
-        if not is_int_exponent or abs(exponent_val) > 20:
+        else:
             raise ValueError("べき乗の指数が大きすぎます")
-        if abs(float(left)) > 1e6:
+
+        if abs(exponent_val) > 20:
+            raise ValueError("べき乗の指数が大きすぎます")
+
+        if isinstance(left, int):
+            left_too_large = abs(left) > 1_000_000
+        elif isinstance(left, Fraction):
+            left_too_large = abs(left.numerator) > 1_000_000 * left.denominator
+        else:
+            left_too_large = True
+
+        if left_too_large:
             raise ValueError("べき乗の底が大きすぎます")
-        return operator.pow(left, right)  # type: ignore
+        return cast(Number, operator.pow(left, right))
 
     def _eval_node(self, node: ast.expr, ops: Dict[type, Callable[..., Any]]) -> Number:
-        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
-            return node.value
+        if isinstance(node, ast.Constant):
+            if isinstance(node.value, bool):
+                raise ValueError("不正な式")
+            if isinstance(node.value, int):
+                return node.value
+            return Fraction(str(node.value))
         if isinstance(node, ast.UnaryOp) and type(node.op) in ops:
             return ops[type(node.op)](self._eval_node(node.operand, ops))  # type: ignore
         if isinstance(node, ast.BinOp) and type(node.op) in ops:
@@ -70,7 +79,6 @@ class Calculator:
                     return Fraction(left) / Fraction(right)
                 if isinstance(left, int) and isinstance(right, int):
                     return Fraction(left, right)
-                return ops[type(node.op)](left, right)  # type: ignore
             return ops[type(node.op)](left, right)  # type: ignore
         raise ValueError("不正な式")
 
@@ -175,15 +183,11 @@ class Calculator:
         except RecursionError:
             raise ValueError("計算式が複雑すぎます")
 
-        if isinstance(result, float) and result.is_integer():
-            return int(result)
         if isinstance(result, Fraction) and result.denominator == 1:
             return result.numerator
         return result
 
-    def float_to_mixed_fraction(
-        self, value: Union[int, float, Fraction], max_denominator: int | None = None
-    ) -> str:
+    def fraction_to_mixed_fraction(self, value: Number, max_denominator: int | None = None) -> str:
         if max_denominator is None:
             max_denominator = self.max_denominator
         if value == 0:
@@ -194,9 +198,7 @@ class Calculator:
             if frac < 0:
                 frac = -frac
         else:
-            frac = Fraction(value).limit_denominator(max_denominator)
-            if frac == 0 and value != 0:
-                frac = Fraction(format(value, ".15g"))
+            frac = Fraction(value, 1)
         num = frac.numerator
         den = frac.denominator
         whole, rem = divmod(abs(num), den)
@@ -207,16 +209,14 @@ class Calculator:
         return f"{sign}{whole} {rem}/{den}"
 
     def mixed_fraction_parts(
-        self, value: Union[int, float, Fraction], max_denominator: int | None = None
+        self, value: Number, max_denominator: int | None = None
     ) -> dict[str, int | str]:
         if max_denominator is None:
             max_denominator = self.max_denominator
         if isinstance(value, Fraction):
             frac = value
         else:
-            frac = Fraction(value).limit_denominator(max_denominator)
-            if frac == 0 and value != 0:
-                frac = Fraction(format(value, ".15g"))
+            frac = Fraction(value, 1)
         num = frac.numerator
         den = frac.denominator
         sign = "-" if num < 0 else ""
@@ -229,7 +229,7 @@ class Calculator:
         if max_len is None:
             max_len = self.max_decimal_digits
         if not isinstance(frac, Fraction):
-            frac = Fraction(frac)
+            frac = Fraction(frac, 1)
         num = frac.numerator
         den = frac.denominator
         sign = "-" if num < 0 else ""
@@ -262,38 +262,13 @@ class Calculator:
             return f"{sign}{whole}.{{{rep}}}"
         return f"{sign}{whole}.{non_rep}{{{rep}}}"
 
-    def float_to_repeating_decimal(self, value: Number, max_len: int | None = None) -> str:
-        if max_len is None:
-            max_len = self.max_decimal_digits
-        if isinstance(value, Fraction):
-            frac = value
-        else:
-            frac = Fraction(value).limit_denominator(self.max_denominator)
-            if frac == 0 and value != 0:
-                # Very small non-zero floats can collapse to 0 under limit_denominator().
-                # Preserve them as a decimal string instead of losing the value.
-                rounded = format(value, ".15g")
-                if "e" in rounded or "E" in rounded:
-                    return format(Decimal(rounded), "f").rstrip("0").rstrip(".")
-                return rounded
-        return self.fraction_to_repeating_decimal(frac, max_len=max_len)
-
     def format_result(self, result: Number, show_fraction: bool) -> Number | str:
-        if show_fraction and isinstance(result, (int, float, Fraction)):
-            return self.float_to_mixed_fraction(result)
-        if isinstance(result, (int, float, Fraction)):
-            frac = Fraction(result) if not isinstance(result, Fraction) else result
+        if show_fraction and isinstance(result, (int, Fraction)):
+            return self.fraction_to_mixed_fraction(result)
+        if isinstance(result, (int, Fraction)):
+            frac = Fraction(result, 1) if isinstance(result, int) else result
             if frac.denominator == 1:
                 return frac.numerator
-            rep = self.float_to_repeating_decimal(result, max_len=self.max_decimal_digits)
-            if "{" in rep:
-                return rep
-            if "." in rep:
-                dec_part = rep.split(".", 1)[1]
-                if len(dec_part) <= 15:
-                    try:
-                        return float(rep)
-                    except Exception:
-                        return rep
+            rep = self.fraction_to_repeating_decimal(result, max_len=self.max_decimal_digits)
             return rep
         return result

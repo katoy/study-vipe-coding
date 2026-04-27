@@ -39,9 +39,9 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.cache = {}
 
 _RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "60"))
-_RATE_LIMIT_WINDOW = 60  # seconds
+_RATE_LIMIT_WINDOW_NS = 60 * 1_000_000_000
 _rate_lock = threading.Lock()
-_rate_store: Dict[str, Dict[str, float | int]] = {}
+_rate_store: Dict[str, Dict[str, int]] = {}
 
 
 @app.middleware("http")
@@ -52,13 +52,13 @@ async def rate_limit_middleware(
         client_host = "unknown"
         if request.client and request.client.host:
             client_host = request.client.host
-        now = time.time()
+        now = time.monotonic_ns()
         with _rate_lock:
             entry = _rate_store.get(client_host)
-            if entry is None or now - entry["start"] >= _RATE_LIMIT_WINDOW:
+            if entry is None or now - entry["start"] >= _RATE_LIMIT_WINDOW_NS:
                 _rate_store[client_host] = {"count": 1, "start": now}
                 expired = [
-                    k for k, v in _rate_store.items() if now - v["start"] >= _RATE_LIMIT_WINDOW
+                    k for k, v in _rate_store.items() if now - v["start"] >= _RATE_LIMIT_WINDOW_NS
                 ]
                 for k in expired:
                     del _rate_store[k]
@@ -92,7 +92,7 @@ async def calculate(
             "is_error": False,
             "expression": expression,
         }
-        if isinstance(value, (int, float, Fraction)):
+        if isinstance(value, (int, Fraction)):
             context["fraction_parts"] = calc.mixed_fraction_parts(value)
         return templates.TemplateResponse(request, "result.html", context)
     except ZeroDivisionError:
