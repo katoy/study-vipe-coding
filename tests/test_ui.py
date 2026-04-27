@@ -6,6 +6,8 @@ import httpx
 import pytest
 import uvicorn
 
+from app.services.calculator import Calculator
+
 try:
     from playwright.sync_api import Page, expect
 
@@ -89,6 +91,16 @@ def test_calculator_divide_by_zero(page: Page, live_server: str) -> None:
     expect(page.locator("#result")).to_contain_text("0で割ることはできません")
 
 
+def test_calculator_parenthesized_repeating_decimal_is_rejected(
+    page: Page, live_server: str
+) -> None:
+    page.goto(live_server)
+    page.locator("#expression").fill("0.(3)")
+    page.get_by_text("=", exact=True).click()
+
+    expect(page.locator("#result")).to_contain_text("計算式が正しくありません")
+
+
 def test_ac_button_clears_display(page: Page, live_server: str) -> None:
     page.goto(live_server)
     page.get_by_text("9", exact=True).click()
@@ -121,3 +133,48 @@ def test_fraction_bar_tracks_denominator_width(page: Page, live_server: str) -> 
         }
         """
     )
+
+
+def test_calculator_can_continue_from_repeating_decimal_result(
+    page: Page, live_server: str
+) -> None:
+    page.goto(live_server)
+    page.get_by_text("1", exact=True).click()
+    page.get_by_text("÷", exact=True).click()
+    page.get_by_text("3", exact=True).click()
+    page.get_by_text("2", exact=True).click()
+    page.get_by_text("6", exact=True).click()
+    page.get_by_text("7", exact=True).click()
+    page.get_by_text("=", exact=True).click()
+
+    expect(page.locator("#expression")).not_to_have_value("1/3267")
+    assert page.locator("#expression").input_value().startswith("0.")
+
+    page.get_by_text("×", exact=True).click()
+    page.get_by_text("2", exact=True).click()
+    page.get_by_text("=", exact=True).click()
+
+    expect(page.locator("#result")).to_have_text("")
+    assert page.locator("#expression").input_value() != "計算式が正しくありません"
+
+
+def test_calculator_can_continue_from_repeating_decimal_result_with_addition(
+    page: Page, live_server: str
+) -> None:
+    page.goto(live_server)
+    page.get_by_text("1", exact=True).click()
+    page.get_by_text("÷", exact=True).click()
+    page.get_by_text("3", exact=True).click()
+    page.get_by_text("2", exact=True).click()
+    page.get_by_text("6", exact=True).click()
+    page.get_by_text("7", exact=True).click()
+    page.get_by_text("=", exact=True).click()
+
+    expected = Calculator().format_result(Calculator().safe_eval("2 + 1/3267"), False)
+
+    page.get_by_text("+", exact=True).click()
+    page.get_by_text("2", exact=True).click()
+    page.get_by_text("=", exact=True).click()
+
+    expect(page.locator("#expression")).to_have_value(expected)
+    expect(page.locator("#result")).to_have_text("")

@@ -224,8 +224,7 @@ def test_calculate_html_terminating_decimal(client: Any) -> None:
     assert "0.5" in res.text
 
 
-def test_repeating_decimal_input_evaluation(client: Any) -> None:
-    # UI may send expressions like "0.(3)*9" — ensure server accepts and evaluates
-    data, code = calc(client, "0.{3}*9")
-    assert code == 200
-    assert data.get("result") == 3
+def test_repeating_decimal_parentheses_rejected(client: Any) -> None:
+    data, code = calc(client, "0.(3)*9")
+    assert code == 400
+    assert "error" in data

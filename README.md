@@ -25,7 +25,7 @@ Table of Contents
   - JSON API: POST `/api/calculate` -> `{ "result": ..., "expression": ... }`
 - 計算ロジック: `app/services/calculator.py`
   - Calculator クラスを提供しています: `Calculator()` のインスタンスメソッド（例: `Calculator().safe_eval(expr)`）で式を評価します。アプリ起動時にモジュールレベルの `calc` インスタンスが `app.main` 内に作成されており、アプリケーション実行中にプログラムから再利用する場合は `from app.main import calc` を利用できます。
-  - AST ベースの安全な評価を行い、混数、循環小数表記（波括弧 `{}`）等に対応します（内部では `fractions.Fraction` を用いて可能な限り有理数を厳密に扱います）。
+  - AST ベースの安全な評価を行い、混数、循環小数表記（波括弧 `{}`）等に対応します。内部計算は `int` と `fractions.Fraction` に限定しており、通常の `float` 演算で起きる丸め誤差や桁落ちは発生しません。
   - べき乗は環境変数 `ALLOW_POW` によりオプトイン（安全ガードあり）。
 - 簡易レート制限: `RATE_LIMIT_PER_MIN`（単一プロセス向けの in-memory 実装）。
 - CORS: `ALLOW_ORIGINS` 環境変数で制御（カンマ区切り）。
@@ -204,6 +204,7 @@ uv run mypy app
 ## 実装上の注意
 
 - 計算式は AST による解析で評価され、任意のコード実行はブロックされています（テストで検証済み）。
+- 小数は文字列から `Fraction` に変換して評価しているため、`0.1 + 0.2` や `0.00001 * 0.00001` のような式でも `float` の丸め誤差や桁落ちを起こしません。
 - レートリミットと CORS の実装はシングルプロセス向けの簡易実装です。本番での水平スケール時は外部ストアや API ゲートウェイを導入してください。
 
 ---
