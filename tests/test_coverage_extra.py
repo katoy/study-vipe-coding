@@ -7,7 +7,7 @@ import pytest
 from starlette.requests import Request
 from starlette.responses import Response
 
-from app.main import _RATE_LIMIT_WINDOW, _rate_store, rate_limit_middleware
+from app.main import _RATE_LIMIT_WINDOW_NS, _rate_store, rate_limit_middleware
 from app.services.calculator import Calculator
 
 
@@ -45,10 +45,27 @@ def test_long_decimal_replacement_positive_and_negative() -> None:
     assert Fraction(res2) == expected2
 
 
-def test_float_to_mixed_fraction_negative_fraction() -> None:
+def test_mixed_fraction_negative_fraction() -> None:
     calc = Calculator()
-    s = calc.float_to_mixed_fraction(Fraction(-3, 2))
+    s = calc.fraction_to_mixed_fraction(Fraction(-3, 2))
     assert s == "-1 1/2"
+
+
+def test_integer_inputs_use_fraction_helpers() -> None:
+    calc = Calculator()
+    assert calc.fraction_to_mixed_fraction(2) == "2"
+    assert calc.mixed_fraction_parts(2) == {"sign": "", "whole": 2, "num": 0, "den": 1}
+    assert calc.fraction_to_repeating_decimal(2) == "2"
+
+
+def test_safe_pow_rejects_invalid_inputs() -> None:
+    calc = Calculator()
+    with pytest.raises(ValueError):
+        calc._safe_pow(1, Fraction(1, 2))
+    with pytest.raises(ValueError):
+        calc._safe_pow(Fraction(1_000_001, 1), 2)
+    with pytest.raises(ValueError):
+        calc._safe_pow(object(), 2)
 
 
 def test_fraction_to_repeating_decimal_maxlen_truncates() -> None:
@@ -60,14 +77,13 @@ def test_fraction_to_repeating_decimal_maxlen_truncates() -> None:
     assert len(r.split(".", 1)[1]) == 3
 
 
-def test_format_result_handles_float_conversion_error(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_format_result_handles_unexpected_string(monkeypatch: pytest.MonkeyPatch) -> None:
     calc = Calculator()
-    # Patch Calculator.float_to_repeating_decimal to return a non-float-parsable string
+    # Patch Calculator.fraction_to_repeating_decimal to return a non-standard string
     monkeypatch.setattr(
-        Calculator, "float_to_repeating_decimal", lambda self, value, max_len=None: "0.5abc"
+        Calculator, "fraction_to_repeating_decimal", lambda self, value, max_len=None: "0.5abc"
     )
-    out = calc.format_result(1 / 2, show_fraction=False)
-    # Should return the raw string since float() will fail to parse
+    out = calc.format_result(Fraction(1, 2), show_fraction=False)
     assert out == "0.5abc"
 
 
@@ -77,14 +93,6 @@ def test_fraction_to_repeating_decimal_no_repeat_with_small_maxlen() -> None:
     assert "." in r
     assert "{" not in r
     assert len(r.split(".", 1)[1]) == 2
-
-
-def test_division_with_floats_uses_fallback_branch() -> None:
-    calc = Calculator()
-    # this should trigger the fallback float-division branch in _eval_node
-    res = calc.safe_eval("1.5 / 0.5")
-    # result may be normalized to int if it's an integer float
-    assert res == 3
 
 
 def test_abs_length_raises_again() -> None:
@@ -125,8 +133,14 @@ def test_force_execute_delete_line_in_main() -> None:
 def test_rate_limit_middleware_deletes_expired(monkeypatch: pytest.MonkeyPatch) -> None:
     # seed an expired entry
     _rate_store.clear()
-    _rate_store["expired_ip_a"] = {"count": 1, "start": time.time() - (_RATE_LIMIT_WINDOW + 10)}
-    _rate_store["expired_ip_b"] = {"count": 1, "start": time.time() - (_RATE_LIMIT_WINDOW + 20)}
+    _rate_store["expired_ip_a"] = {
+        "count": 1,
+        "start": time.monotonic_ns() - (_RATE_LIMIT_WINDOW_NS + 10),
+    }
+    _rate_store["expired_ip_b"] = {
+        "count": 1,
+        "start": time.monotonic_ns() - (_RATE_LIMIT_WINDOW_NS + 20),
+    }
 
     # create a simple dummy request object so middleware sees .url.path and .client.host
     class DummyClient:

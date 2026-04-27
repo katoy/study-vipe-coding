@@ -63,11 +63,16 @@ def test_decimal(client: Any) -> None:
     assert data.get("result") == 3
 
 
+def test_decimal_literal_precision(client: Any) -> None:
+    data, code = calc(client, "0.100001")
+    assert code == 200
+    assert data.get("result") == "0.100001"
+
+
 def test_tiny_decimal_multiplication(client: Any) -> None:
     data, code = calc(client, "0.00001 * 0.00001")
     assert code == 200
-    assert data.get("result") != 0
-    assert data.get("result") == pytest.approx(1e-10)
+    assert data.get("result") == "0.0000000001"
 
 
 def test_percent(client: Any) -> None:
@@ -154,6 +159,12 @@ def test_calculate_html_success(client: Any) -> None:
     assert 'class="result visually-hidden"' in res.text
 
 
+def test_calculate_html_decimal_literal_precision(client: Any) -> None:
+    res = client.post("/calculate", data={"expression": "0.100001"})
+    assert res.status_code == 200
+    assert 'id="expression" value="0.100001"' in res.text
+
+
 def test_calculate_html_divide_by_zero(client: Any) -> None:
     res = client.post("/calculate", data={"expression": "5/0"})
     assert res.status_code == 200
@@ -177,7 +188,7 @@ def test_api_show_fraction(client: Any) -> None:
     data, code = calc(client, "3/2")
     # default: no fraction
     assert code == 200
-    assert data.get("result") == 1.5
+    assert data.get("result") == "1.5"
 
     # request fraction formatting via API
     res = client.post("/api/calculate", json={"expression": "3/2", "show_fraction": True})

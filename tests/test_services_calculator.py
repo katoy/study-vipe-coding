@@ -1,3 +1,4 @@
+from fractions import Fraction
 from typing import Any
 
 import pytest
@@ -12,7 +13,7 @@ def test_safe_eval_basic_arithmetic() -> None:
 
 
 def test_safe_eval_division_and_normalization() -> None:
-    assert calc.safe_eval("5/2") == 2.5
+    assert calc.safe_eval("5/2") == Fraction(5, 2)
     assert calc.safe_eval("2.0") == 2
 
 
@@ -56,17 +57,22 @@ def test_power_operator_behavior(monkeypatch: Any) -> None:
         Calculator().safe_eval("1000001**2")
 
 
-def test_float_to_mixed_fraction_examples() -> None:
-    assert calc.float_to_mixed_fraction(1.75) == "1 3/4"
-    assert calc.float_to_mixed_fraction(0.5) == "1/2"
-    assert calc.float_to_mixed_fraction(2.0) == "2"
-    assert calc.float_to_mixed_fraction(-1.25) == "-1 1/4"
-    assert calc.float_to_mixed_fraction(0.3333333333333, max_denominator=100) == "1/3"
+def test_mixed_fraction_examples() -> None:
+    assert calc.fraction_to_mixed_fraction(Fraction(7, 4)) == "1 3/4"
+    assert calc.fraction_to_mixed_fraction(Fraction(1, 2)) == "1/2"
+    assert calc.fraction_to_mixed_fraction(Fraction(2, 1)) == "2"
+    assert calc.fraction_to_mixed_fraction(Fraction(-5, 4)) == "-1 1/4"
+    assert calc.fraction_to_mixed_fraction(Fraction(1, 3), max_denominator=100) == "1/3"
 
 
 def test_non_numeric_constant_raises() -> None:
     with pytest.raises(ValueError):
         calc.safe_eval("'hi'")
+
+
+def test_bool_constant_raises() -> None:
+    with pytest.raises(ValueError):
+        calc.safe_eval("True")
 
 
 def test_name_node_raises() -> None:
@@ -79,39 +85,33 @@ def test_unary_ops() -> None:
     assert calc.safe_eval("+4") == 4
 
 
-def test_float_zero_fraction() -> None:
-    assert calc.float_to_mixed_fraction(0.0) == "0"
+def test_zero_fraction() -> None:
+    assert calc.fraction_to_mixed_fraction(Fraction(0, 1)) == "0"
 
 
 def test_safe_eval_mixed_fraction_input() -> None:
     res = calc.safe_eval("2 2/3+3")
-    assert abs(res - (17 / 3)) < 1e-9
+    assert res == Fraction(17, 3)
 
 
 def test_safe_eval_negative_mixed_fraction_input() -> None:
     res = calc.safe_eval("-1 1/4 + 2")
-    assert abs(res - 0.75) < 1e-9
+    assert res == Fraction(3, 4)
 
 
 def test_fraction_to_repeating_decimal_examples() -> None:
-    from fractions import Fraction
-
     calc_local = Calculator()
     assert calc_local.fraction_to_repeating_decimal(Fraction(1, 3)) == "0.{3}"
     assert calc_local.fraction_to_repeating_decimal(Fraction(8, 3)) == "2.{6}"
     assert calc_local.fraction_to_repeating_decimal(Fraction(1, 2)) == "0.5"
     assert calc_local.fraction_to_repeating_decimal(Fraction(-1, 3)) == "-0.{3}"
 
-    # float conversion via limit_denominator
-    assert calc_local.float_to_repeating_decimal(1.0 / 3.0) == "0.{3}"
-    assert calc_local.float_to_repeating_decimal(0.5) == "0.5"
-
 
 def test_safe_eval_repeating_nonrep_part() -> None:
     res = calc.safe_eval("1.2{34}")
-    assert abs(res - (611 / 495)) < 1e-9
+    assert res == Fraction(611, 495)
     res2 = calc.safe_eval("-1.2{34}")
-    assert abs(res2 - (-(611 / 495))) < 1e-9
+    assert res2 == Fraction(-611, 495)
 
 
 def test_fraction_to_repeating_decimal_integer_input() -> None:
@@ -119,24 +119,28 @@ def test_fraction_to_repeating_decimal_integer_input() -> None:
 
 
 def test_fraction_to_repeating_decimal_nonrep_part() -> None:
-    from fractions import Fraction
-
     calc_local = Calculator()
     assert calc_local.fraction_to_repeating_decimal(Fraction(1, 6)) == "0.1{6}"
-    assert calc_local.float_to_repeating_decimal(1.0 / 6.0) == "0.1{6}"
 
 
-def test_float_to_repeating_decimal_small_nonzero_decimal() -> None:
+def test_repeating_decimal_small_nonzero_decimal() -> None:
     calc_local = Calculator()
-    assert calc_local.float_to_repeating_decimal(0.0001) == "0.0001"
+    assert calc_local.fraction_to_repeating_decimal(Fraction(1, 10000)) == "0.0001"
+    assert calc_local.fraction_to_repeating_decimal(Fraction(1, 10**20)) == "0.00000000000000000001"
 
 
-def test_float_to_mixed_fraction_small_nonzero_decimal() -> None:
+def test_mixed_fraction_small_nonzero_decimal() -> None:
     calc_local = Calculator()
-    assert calc_local.float_to_mixed_fraction(1e-10) == "1/10000000000"
-    assert calc_local.mixed_fraction_parts(1e-10) == {
+    assert calc_local.fraction_to_mixed_fraction(Fraction(1, 10**10)) == "1/10000000000"
+    assert calc_local.mixed_fraction_parts(Fraction(1, 10**10)) == {
         "sign": "",
         "whole": 0,
         "num": 1,
         "den": 10000000000,
     }
+
+
+def test_safe_eval_preserves_decimal_literal_precision() -> None:
+    calc_local = Calculator()
+    result = calc_local.safe_eval("0.100001")
+    assert result == Fraction(100001, 1000000)
