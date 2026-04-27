@@ -7,14 +7,14 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 
-# Install uv (tool for running/installing project)
-RUN pip install --no-cache-dir uv
+# Install build tooling and install dependencies
+RUN pip install --no-cache-dir pip setuptools wheel
 
 # Copy dependency files to ensure reproducible installs
 COPY pyproject.toml uv.lock ./
 
-# Install dependencies system-wide via uv
-RUN uv pip install --system .
+# Install project and dependencies
+RUN pip install --no-cache-dir .
 
 # Copy application code and tests
 COPY app ./app
@@ -24,14 +24,14 @@ COPY tests ./tests
 RUN chown -R appuser:appuser /app
 
 # Expose the API port
-EXPOSE 8000
+EXPOSE 8080
 
 # Switch to non-root user for security
 USER appuser
 
 # Run the FastAPI application.
 # Cloud Run injects PORT; local docker run falls back to 8000.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
 
 # CI stage with dev tools
 FROM base AS ci
@@ -45,3 +45,8 @@ RUN mkdir -p /ms-playwright \
  && chown -R appuser:appuser /ms-playwright
 USER appuser
 CMD ["pytest", "-q"]
+
+# Final production image (default build target)
+FROM base AS final
+USER appuser
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}"]
