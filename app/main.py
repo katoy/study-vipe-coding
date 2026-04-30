@@ -40,28 +40,54 @@ templates.env.cache = {}
 
 _RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "60"))
 _RATE_LIMIT_WINDOW_NS = 60 * 1_000_000_000
+_RATE_LIMIT_MAX_KEYS = int(os.getenv("RATE_LIMIT_MAX_KEYS", "10000"))
+_RATE_LIMIT_TRUST_FORWARDED = os.getenv("RATE_LIMIT_TRUST_FORWARDED", "0").lower() in (
+    "1",
+    "true",
+    "yes",
+)
 _rate_lock = threading.Lock()
 _rate_store: Dict[str, Dict[str, int]] = {}
+_rate_last_sweep_ns: int = 0
+
+
+def _client_key(request: Request) -> str:
+    if _RATE_LIMIT_TRUST_FORWARDED:
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            first = forwarded.split(",", 1)[0].strip()
+            if first:
+                return first
+    if request.client and request.client.host:
+        return request.client.host
+    return "unknown"
+
+
+def _sweep_expired(now: int) -> None:
+    expired = [k for k, v in _rate_store.items() if now - v["start"] >= _RATE_LIMIT_WINDOW_NS]
+    for k in expired:
+        del _rate_store[k]
 
 
 @app.middleware("http")
 async def rate_limit_middleware(
     request: Request, call_next: Callable[[Request], Awaitable[Response]]
 ) -> Response:
+    global _rate_last_sweep_ns
     if request.url.path.startswith("/api/"):
-        client_host = "unknown"
-        if request.client and request.client.host:
-            client_host = request.client.host
+        client_host = _client_key(request)
         now = time.monotonic_ns()
         with _rate_lock:
+            if now - _rate_last_sweep_ns >= _RATE_LIMIT_WINDOW_NS:
+                _sweep_expired(now)
+                _rate_last_sweep_ns = now
+
             entry = _rate_store.get(client_host)
             if entry is None or now - entry["start"] >= _RATE_LIMIT_WINDOW_NS:
+                if client_host not in _rate_store and len(_rate_store) >= _RATE_LIMIT_MAX_KEYS:
+                    oldest = min(_rate_store.items(), key=lambda kv: kv[1]["start"])[0]
+                    del _rate_store[oldest]
                 _rate_store[client_host] = {"count": 1, "start": now}
-                expired = [
-                    k for k, v in _rate_store.items() if now - v["start"] >= _RATE_LIMIT_WINDOW_NS
-                ]
-                for k in expired:
-                    del _rate_store[k]
             else:
                 if entry["count"] >= _RATE_LIMIT_PER_MIN:
                     return JSONResponse(status_code=429, content={"error": "Too many requests"})
