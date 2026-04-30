@@ -39,6 +39,33 @@ app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), na
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.cache = {}
 
+_SECURITY_HEADERS_ENABLED = os.getenv("SECURITY_HEADERS_ENABLED", "1").lower() in (
+    "1",
+    "true",
+    "yes",
+)
+_DEFAULT_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; "
+    "connect-src 'self'; "
+    "font-src 'self'; "
+    "frame-ancestors 'none'; "
+    "form-action 'self'; "
+    "base-uri 'self'; "
+    "object-src 'none'"
+)
+_CSP_POLICY = os.getenv("CSP_POLICY", _DEFAULT_CSP)
+_HSTS_VALUE = os.getenv("HSTS_VALUE", "max-age=31536000; includeSubDomains")
+
+
+def _request_is_https(request: Request) -> bool:
+    if request.url.scheme == "https":
+        return True
+    return request.headers.get("x-forwarded-proto", "").lower() == "https"
+
+
 _RATE_LIMIT_PER_MIN = int(os.getenv("RATE_LIMIT_PER_MIN", "60"))
 _RATE_LIMIT_WINDOW_NS = 60 * 1_000_000_000
 _RATE_LIMIT_MAX_KEYS = int(os.getenv("RATE_LIMIT_MAX_KEYS", "10000"))
@@ -94,6 +121,23 @@ async def rate_limit_middleware(
                     return JSONResponse(status_code=429, content={"error": "Too many requests"})
                 entry["count"] += 1
     response = await call_next(request)
+    return response
+
+
+@app.middleware("http")
+async def security_headers_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    response = await call_next(request)
+    if not _SECURITY_HEADERS_ENABLED:
+        return response
+    headers = response.headers
+    headers.setdefault("X-Content-Type-Options", "nosniff")
+    headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    headers.setdefault("X-Frame-Options", "DENY")
+    headers.setdefault("Content-Security-Policy", _CSP_POLICY)
+    if _request_is_https(request):
+        headers.setdefault("Strict-Transport-Security", _HSTS_VALUE)
     return response
 
 
