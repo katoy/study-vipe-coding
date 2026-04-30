@@ -2,9 +2,10 @@ import logging
 import os
 import threading
 import time
+from dataclasses import dataclass
 from fractions import Fraction
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Dict
+from typing import Any, Awaitable, Callable, Dict, Optional, Union
 
 from fastapi import FastAPI, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from app.services.calculator import Calculator
+from app.services.calculator import Calculator, Number
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -105,39 +106,83 @@ async def index(request: Request) -> Response:
     return templates.TemplateResponse(request, "index.html", {"result": None, "expression": ""})
 
 
+_DIV_BY_ZERO_MSG = "0で割ることはできません"
+_INVALID_EXPR_MSG = "計算式が正しくありません"
+_SYSTEM_ERROR_MSG = "システムエラーが発生しました"
+
+
+@dataclass(frozen=True)
+class _CalculationOutcome:
+    expression: str
+    is_error: bool
+    status_code: int
+    value: Optional[Number] = None
+    result: Optional[Union[Number, str]] = None
+    fraction_parts: Optional[dict[str, int | str]] = None
+    error_message: Optional[str] = None
+
+
+def _compute_calculation(expression: str, show_fraction: bool) -> _CalculationOutcome:
+    try:
+        value = calc.safe_eval(expression)
+    except ZeroDivisionError:
+        logger.warning("Division by zero: %s", expression)
+        return _CalculationOutcome(
+            expression=expression, is_error=True, status_code=400, error_message=_DIV_BY_ZERO_MSG
+        )
+    except (SyntaxError, ValueError) as e:
+        logger.warning("Invalid expression: %s - %s", expression, e)
+        return _CalculationOutcome(
+            expression=expression, is_error=True, status_code=400, error_message=_INVALID_EXPR_MSG
+        )
+    except Exception as e:
+        logger.error("Unexpected error calculating %s: %s", expression, e, exc_info=True)
+        return _CalculationOutcome(
+            expression=expression, is_error=True, status_code=500, error_message=_SYSTEM_ERROR_MSG
+        )
+
+    result = calc.format_result(value, show_fraction)
+    fraction_parts = (
+        calc.mixed_fraction_parts(value) if isinstance(value, (int, Fraction)) else None
+    )
+    return _CalculationOutcome(
+        expression=expression,
+        is_error=False,
+        status_code=200,
+        value=value,
+        result=result,
+        fraction_parts=fraction_parts,
+    )
+
+
 @app.post("/calculate")
 async def calculate(
     request: Request, expression: str = Form(...), show_fraction: str | None = Form(None)
 ) -> Response:
-    try:
-        value = calc.safe_eval(expression)
-        result = calc.format_result(value, bool(show_fraction))
-        context: Dict[str, Any] = {
-            "value": value,
-            "result": result,
-            "is_error": False,
-            "expression": expression,
-        }
-        if isinstance(value, (int, Fraction)):
-            context["fraction_parts"] = calc.mixed_fraction_parts(value)
-        return templates.TemplateResponse(request, "result.html", context)
-    except ZeroDivisionError:
-        logger.warning("Division by zero: %s", expression)
+    outcome = _compute_calculation(expression, bool(show_fraction))
+    if outcome.is_error:
+        # Soft validation errors render inline at HTTP 200 so the form re-displays
+        # the message; only system errors surface as 5xx.
+        status = outcome.status_code if outcome.status_code >= 500 else 200
         return templates.TemplateResponse(
             request,
             "result.html",
-            {"result": "0で割ることはできません", "is_error": True, "expression": expression},
+            {
+                "result": outcome.error_message,
+                "is_error": True,
+                "expression": outcome.expression,
+            },
+            status_code=status,
         )
-    except (SyntaxError, ValueError) as e:
-        logger.warning("Invalid expression: %s - %s", expression, e)
-        return templates.TemplateResponse(
-            request,
-            "result.html",
-            {"result": "計算式が正しくありません", "is_error": True, "expression": expression},
-        )
-    except Exception as e:
-        logger.error("Unexpected error calculating %s: %s", expression, e, exc_info=True)
-        raise
+    context: Dict[str, Any] = {
+        "value": outcome.value,
+        "result": outcome.result,
+        "is_error": False,
+        "expression": outcome.expression,
+    }
+    if outcome.fraction_parts is not None:
+        context["fraction_parts"] = outcome.fraction_parts
+    return templates.TemplateResponse(request, "result.html", context)
 
 
 class CalcRequest(BaseModel):
@@ -147,25 +192,10 @@ class CalcRequest(BaseModel):
 
 @app.post("/api/calculate")
 async def api_calculate(request: Request, body: CalcRequest) -> JSONResponse:
-    try:
-        value = calc.safe_eval(body.expression)
-        result = calc.format_result(value, body.show_fraction)
-        return JSONResponse(content={"result": result, "expression": body.expression})
-    except ZeroDivisionError:
-        logger.warning("Division by zero: %s", body.expression)
+    outcome = _compute_calculation(body.expression, body.show_fraction)
+    if outcome.is_error:
         return JSONResponse(
-            content={"error": "0で割ることはできません", "expression": body.expression},
-            status_code=400,
+            content={"error": outcome.error_message, "expression": outcome.expression},
+            status_code=outcome.status_code,
         )
-    except (SyntaxError, ValueError) as e:
-        logger.warning("Invalid expression: %s - %s", body.expression, e)
-        return JSONResponse(
-            content={"error": "計算式が正しくありません", "expression": body.expression},
-            status_code=400,
-        )
-    except Exception as e:
-        logger.error("Unexpected error calculating %s: %s", body.expression, e, exc_info=True)
-        return JSONResponse(
-            content={"error": "システムエラーが発生しました", "expression": body.expression},
-            status_code=500,
-        )
+    return JSONResponse(content={"result": outcome.result, "expression": outcome.expression})
