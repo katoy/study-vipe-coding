@@ -7,6 +7,56 @@ from typing import Any, Callable, Dict, Union, cast
 
 Number = Union[int, Fraction]
 
+_LONG_DECIMAL_RE = re.compile(r"(?P<sign>-?)(?P<int>\d+)\.(?P<dec>\d{20,})")
+_REPEATING_DECIMAL_RE = re.compile(r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}")
+_MIXED_FRACTION_RE = re.compile(r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)")
+
+# Patterns whose presence justifies bypassing the soft expression-length limit:
+# they expand into longer normalised forms but are themselves bounded by
+# MAX_EXPR_LENGTH_ABSOLUTE.
+_LENGTH_BYPASS_PATTERNS = (_LONG_DECIMAL_RE, _REPEATING_DECIMAL_RE, _MIXED_FRACTION_RE)
+
+
+def _replace_long_decimal(m: re.Match[str]) -> str:
+    sign = m.group("sign") or ""
+    intpart = m.group("int")
+    decpart = m.group("dec")
+    numerator = int(intpart + decpart)
+    denom = 10 ** len(decpart)
+    if sign == "-":
+        numerator = -numerator
+    return f"({numerator}/{denom})"
+
+
+def _replace_repeating_decimal(m: re.Match[str]) -> str:
+    sign = m.group("sign") or ""
+    whole = m.group("whole") or ""
+    nonrep = m.group("nonrep") or ""
+    rep = m.group("rep")
+    whole_int = int(whole) if whole != "" else 0
+    nonrep_len = len(nonrep)
+    rep_len = len(rep)
+    if nonrep_len > 0:
+        num = int(nonrep) * (10**rep_len - 1) + int(rep)
+        den = (10**nonrep_len) * (10**rep_len - 1)
+    else:
+        num = int(rep)
+        den = 10**rep_len - 1
+    total_num = whole_int * den + num
+    if sign == "-":
+        total_num = -total_num
+    return f"({total_num}/{den})"
+
+
+def _replace_mixed_fraction(m: re.Match[str]) -> str:
+    sign = m.group("sign") or ""
+    whole = m.group("whole")
+    num = m.group("num")
+    den = m.group("den")
+    if sign == "-":
+        return f"(-({whole} + {num}/{den}))"
+    return f"({whole} + {num}/{den})"
+
 
 class Calculator:
     """Calculator encapsulates expression evaluation and formatting settings."""
@@ -108,80 +158,23 @@ class Calculator:
 
     def safe_eval(self, expr: str) -> Number:
         if len(expr) > self.max_expr_length:
-            long_dec_check = r"(?P<sign>-?)(?P<int>\d+)\.(?P<dec>\d{20,})"
-            rep_check = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}"
-            mixed_check = r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)"
-            if (
-                not re.search(long_dec_check, expr)
-                and not re.search(rep_check, expr)
-                and not re.search(mixed_check, expr)
-            ):
+            if not any(p.search(expr) for p in _LENGTH_BYPASS_PATTERNS):
                 raise ValueError("計算式が長すぎます")
         if len(expr) > self.MAX_EXPR_LENGTH_ABSOLUTE:
             raise ValueError("計算式が長すぎます")
 
-        def _replace_long_decimal(m: re.Match[str]) -> str:
-            sign = m.group("sign") or ""
-            intpart = m.group("int")
-            decpart = m.group("dec")
-            numerator = int((intpart + decpart))
-            denom = 10 ** len(decpart)
-            if sign == "-":
-                numerator = -numerator
-            return f"({numerator}/{denom})"
+        expr = _LONG_DECIMAL_RE.sub(_replace_long_decimal, expr)
+        expr = _REPEATING_DECIMAL_RE.sub(_replace_repeating_decimal, expr)
+        expr = _MIXED_FRACTION_RE.sub(_replace_mixed_fraction, expr)
 
-        long_dec_pattern = r"(?P<sign>-?)(?P<int>\d+)\.(?P<dec>\d{20,})"
-        expr = re.sub(long_dec_pattern, _replace_long_decimal, expr)
-
-        def _replace_repeating(m: re.Match[str]) -> str:
-            sign = m.group("sign") or ""
-            whole = m.group("whole") or ""
-            nonrep = m.group("nonrep") or ""
-            rep = m.group("rep")
-            W = int(whole) if whole != "" else 0
-            A = nonrep
-            B = rep
-            mlen = len(A)
-            nlen = len(B)
-            if mlen > 0:
-                num = int(A) * (10**nlen - 1) + int(B)
-                den = (10**mlen) * (10**nlen - 1)
-            else:
-                num = int(B)
-                den = 10**nlen - 1
-            total_num = W * den + num
-            if sign == "-":
-                total_num = -total_num
-            return f"({total_num}/{den})"
-
-        rep_pattern = r"(?P<sign>-?)(?P<whole>\d*)\.(?P<nonrep>\d*)\{(?P<rep>\d+)\}"
-        expr = re.sub(rep_pattern, _replace_repeating, expr)
-
-        def _replace_mixed(m: re.Match[str]) -> str:
-            sign = m.group("sign") or ""
-            whole = m.group("whole")
-            num = m.group("num")
-            den = m.group("den")
-            if sign == "-":
-                return f"(-({whole} + {num}/{den}))"
-            return f"({whole} + {num}/{den})"
-
-        pattern = r"(?P<sign>[-+]?)(?P<whole>\d+)\s+(?P<num>\d+)/(?P<den>\d+)"
-        expr = re.sub(pattern, _replace_mixed, expr)
-
-        try:
-            tree = ast.parse(expr, mode="eval")
-        except SyntaxError:
-            raise
-
+        tree = ast.parse(expr, mode="eval")
         self._check_complexity(tree)
 
         ops = self._OPS.copy()
-
         try:
             result = self._eval_node(tree.body, ops)
         except RecursionError:
-            raise ValueError("計算式が複雑すぎます")
+            raise ValueError("計算式が複雑すぎます") from None
 
         if isinstance(result, Fraction) and result.denominator == 1:
             return result.numerator
