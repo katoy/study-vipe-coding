@@ -17,3 +17,6 @@ coverage.xml
 .DS_Store
 *.egg-info/
 tests/e2e_server.log
+
+# Claude Code personal/local settings
+.claude/settings.local.json
