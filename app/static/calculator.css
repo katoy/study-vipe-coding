@@ -1,0 +1,247 @@
+:root {
+  --bg-start: #f6f8fb;
+  --bg-end: #eef3f8;
+  --panel-bg: #ffffff;
+  --panel-shadow: 0 12px 30px rgba(15, 20, 30, 0.06);
+  --text: #071127;
+  --muted: #566075;
+  --display-bg: #081426;
+  --display-text: #f8fbff;
+  --accent: #3751ff;
+  --accent-2: #7c3aed;
+  --danger: #ef4444;
+  --success: #10b981;
+  --btn-radius: 14px;
+  --btn-padding-vert: 10px;
+  --btn-padding-horz: 12px;
+  --btn-max-font-px: 24;
+  --btn-min-font-px: 12;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    'Noto Sans JP', Arial, sans-serif;
+  background: #0f1724;
+  color: var(--text);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.calculator {
+  background: var(--panel-bg);
+  border-radius: 20px;
+  box-shadow: var(--panel-shadow);
+  padding: 32px;
+  width: 360px;
+  color: var(--text);
+}
+
+h1 {
+  text-align: center;
+  font-size: 1.6rem;
+  margin-bottom: 12px;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.display {
+  background: linear-gradient(180deg, var(--display-bg), #06142a);
+  color: var(--display-text);
+  border-radius: 12px;
+  padding: 18px;
+  font-size: 1.9rem;
+  text-align: right;
+  min-height: 74px;
+  margin-bottom: 18px;
+  box-shadow: inset 0 -6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.display input,
+#expression {
+  width: 100%;
+  font-size: 1.6rem;
+  background: transparent;
+  border: none;
+  color: var(--display-text);
+  outline: none;
+  text-align: right;
+}
+
+.options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.options-spacer {
+  flex: 1;
+}
+
+#fraction-preview {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  padding-left: 8px;
+  min-width: 64px;
+  text-align: right;
+}
+
+.hint {
+  font-size: 0.95rem;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.brace-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.brace-btn {
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+button {
+  padding: var(--btn-padding-vert) var(--btn-padding-horz);
+  border: none;
+  border-radius: var(--btn-radius);
+  font-size: calc(var(--btn-max-font-px) * 1px);
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+button:hover {
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button:focus {
+  outline: 3px solid rgba(55, 81, 255, 0.16);
+  outline-offset: 2px;
+}
+
+.btn-num {
+  background: #ffffff;
+  color: var(--text);
+  font-weight: 700;
+  border: 1px solid rgba(15, 20, 30, 0.06);
+  box-shadow: 0 2px 0 rgba(15, 20, 30, 0.03) inset;
+}
+
+.btn-op {
+  background: linear-gradient(180deg, var(--accent), #2b49ee);
+  color: #fff;
+  font-weight: 800;
+}
+
+.btn-eq {
+  background: linear-gradient(180deg, var(--success), #0f8a57);
+  color: #fff;
+  font-weight: 800;
+}
+
+.btn-clr {
+  background: linear-gradient(180deg, var(--danger), #b91c1c);
+  color: #fff;
+  font-weight: 800;
+}
+
+.btn-del {
+  background: linear-gradient(180deg, #fb923c, #ea580c);
+  color: #fff;
+  font-weight: 800;
+}
+
+.btn-span2 {
+  grid-column: span 2;
+}
+
+.fraction {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: var(--text);
+  min-width: max-content;
+}
+
+.fraction .whole {
+  font-size: 1rem;
+  margin-right: 12px;
+  white-space: nowrap;
+}
+
+.fraction .stack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: max-content;
+  width: max-content;
+}
+
+.fraction .num,
+.fraction .den {
+  display: block;
+  padding: 0 6px;
+  text-align: center;
+  white-space: nowrap;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.fraction .bar {
+  display: block;
+  border-top: 2px solid currentColor;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  margin: 2px 0;
+}
+
+.result {
+  text-align: center;
+  margin-top: 16px;
+  color: var(--danger);
+  font-size: 0.95rem;
+  min-height: 20px;
+  font-weight: 700;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  height: 1px;
+  width: 1px;
+  overflow: hidden;
+  clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap;
+}

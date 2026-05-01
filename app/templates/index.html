@@ -5,191 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>計算機</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <style>
-    :root {
-      --bg-start: #f6f8fb;
-      --bg-end: #eef3f8;
-      --panel-bg: #ffffff;
-      --panel-shadow: 0 12px 30px rgba(15,20,30,0.06);
-      --text: #071127;
-      --muted: #566075;
-      --display-bg: #081426;
-      --display-text: #f8fbff;
-      --accent: #3751ff;
-      --accent-2: #7c3aed;
-      --danger: #ef4444;
-      --success: #10b981;
-      --btn-radius: 14px;
-      --btn-padding-vert: 10px;
-      --btn-padding-horz: 12px;
-      --btn-max-font-px: 24;
-      --btn-min-font-px: 12;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans JP', Arial, sans-serif; background: #0f1724; color: var(--text); display: flex; justify-content: center; align-items: center; min-height: 100vh; -webkit-font-smoothing: antialiased; }
-
-    /* Card */
-    .calculator { background: var(--panel-bg); border-radius: 20px; box-shadow: var(--panel-shadow); padding: 32px; width: 360px; color: var(--text); }
-    h1 { text-align: center; font-size: 1.6rem; margin-bottom: 12px; color: var(--text); font-weight: 800; }
-
-    /* Display */
-    .display { background: linear-gradient(180deg,var(--display-bg), #06142a); color: var(--display-text); border-radius: 12px; padding: 18px; font-size: 1.9rem; text-align: right; min-height: 74px; margin-bottom: 18px; box-shadow: inset 0 -6px 16px rgba(0,0,0,0.35); }
-    .display input { width:100%; font-size:1.8rem; background:transparent; border:none; color:var(--display-text); outline:none; text-align:right; }
-
-    /* Options / fraction preview */
-    .options { display:flex; justify-content:space-between; align-items:center; gap:8px; margin:8px 0 12px; }
-    #fraction-preview { overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100%; padding-left:8px; text-align:right; }
-
-    /* Helper text */
-    .hint { font-size:0.95rem; color:var(--muted); margin-bottom:8px; }
-
-    /* Buttons grid */
-    .buttons { display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; }
-
-    button { padding: var(--btn-padding-vert) var(--btn-padding-horz); border: none; border-radius: var(--btn-radius); font-size: calc(var(--btn-max-font-px) * 1px); line-height:1; cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
-    button:hover { transform: translateY(-2px); }
-    button:active { transform: translateY(0); }
-    button:focus { outline: 3px solid rgba(55,81,255,0.16); outline-offset: 2px; }
-
-    /* Button types */
-    .btn-num { background: #ffffff; color: var(--text); font-weight:700; border: 1px solid rgba(15,20,30,0.06); box-shadow: 0 2px 0 rgba(15,20,30,0.03) inset; }
-    .btn-op { background: linear-gradient(180deg,var(--accent), #2b49ee); color: #fff; font-weight:800; }
-    .btn-eq { background: linear-gradient(180deg,var(--success), #0f8a57); color: #fff; font-weight:800; }
-    .btn-clr { background: linear-gradient(180deg,var(--danger), #b91c1c); color: #fff; font-weight:800; }
-    .btn-del { background: linear-gradient(180deg,#fb923c,#ea580c); color: #fff; font-weight:800; }
-    .btn-span2 { grid-column: span 2; }
-
-    /* Typography adjustments for readability */
-    .fraction { display:inline-flex; flex-direction:row; align-items:center; justify-content:center; font-weight:800; color:var(--text); min-width:max-content; }
-    .fraction .whole { font-size:1rem; margin-right:12px; white-space:nowrap; }
-    .fraction .stack { display:inline-flex; flex-direction:column; align-items:center; min-width:max-content; width:max-content; }
-    .fraction .num, .fraction .den { display:block; padding:0 6px; text-align:center; white-space:nowrap; font-weight:800; color:var(--text); }
-    .fraction .bar { display:block; border-top:2px solid currentColor; width:100%; min-width:0; box-sizing:border-box; margin:2px 0; }
-
-    /* Result / status */
-    .result { text-align:center; margin-top:16px; color:var(--danger); font-size:0.95rem; min-height:20px; font-weight:700; }
-
-    .visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px,1px,1px,1px); white-space:nowrap; }
-  </style>
+  <link rel="stylesheet" href="/static/calculator.css">
+  <script defer src="/static/htmx.min.js"></script>
+  <script defer src="/static/calculator.js"></script>
 </head>
 <body>
 <div class="calculator">
   <h1>計算機</h1>
   <form id="calc-form" role="form" aria-label="計算機フォーム" hx-post="/calculate" hx-target="#result" hx-swap="outerHTML" method="post" novalidate>
     <div class="display">
-      <input type="text" name="expression" id="expression" value="{{ value if value is not none else expression or '' }}" aria-label="式入力" placeholder="式を入力" style="width:100%;font-size:1.6rem;background:transparent;border:none;color:var(--display-text);outline:none;text-align:right;" autocomplete="off" />
+      <input type="text" name="expression" id="expression" value="{{ value if value is not none else expression or '' }}" aria-label="式入力" placeholder="式を入力" autocomplete="off" />
     </div>
-    <div class="options" style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0 12px;">
-      <div style="flex:1;">&nbsp;</div>
-      <div id="fraction-preview" style="padding-left:8px;min-width:64px;">
+    <div class="options">
+      <div class="options-spacer">&nbsp;</div>
+      <div id="fraction-preview">
         <!-- stacked fraction preview will be populated via HTMX OOB update -->
       </div>
     </div>
-    <div style="font-size:0.95rem;color:var(--muted);margin-bottom:8px;">循環小数は 0.{3} と入力してください。</div>
-    <div style="display:flex;gap:8px;margin-bottom:12px;">
-      <button type="button" class="btn-num" aria-label="左波括弧" onclick="appendToExpr('{')" style="padding:4px 6px;border-radius:8px;">{</button>
-      <button type="button" class="btn-num" aria-label="右波括弧" onclick="appendToExpr('}')" style="padding:4px 6px;border-radius:8px;">}</button>
+    <div class="hint">循環小数は 0.{3} と入力してください。</div>
+    <div class="brace-row">
+      <button type="button" class="btn-num brace-btn" aria-label="左波括弧" data-append="{">{</button>
+      <button type="button" class="btn-num brace-btn" aria-label="右波括弧" data-append="}">}</button>
     </div>
     <div class="buttons">
-      <button class="btn-clr btn-span2" type="button" aria-label="全消去" onclick="document.getElementById('expression').value='';document.getElementById('result').textContent='';">AC</button>
-      <button class="btn-op" type="button" aria-label="パーセント" onclick="appendToExpr('%')">%</button>
-      <button class="btn-op" type="button" aria-label="割り算" onclick="appendToExpr('/')">÷</button>
-      <button class="btn-num" type="button" aria-label="7" onclick="appendToExpr('7')">7</button>
-      <button class="btn-num" type="button" aria-label="8" onclick="appendToExpr('8')">8</button>
-      <button class="btn-num" type="button" aria-label="9" onclick="appendToExpr('9')">9</button>
-      <button class="btn-op" type="button" aria-label="掛け算" onclick="appendToExpr('*')">×</button>
-      <button class="btn-num" type="button" aria-label="4" onclick="appendToExpr('4')">4</button>
-      <button class="btn-num" type="button" aria-label="5" onclick="appendToExpr('5')">5</button>
-      <button class="btn-num" type="button" aria-label="6" onclick="appendToExpr('6')">6</button>
-      <button class="btn-op" type="button" aria-label="引き算" onclick="appendToExpr('-')">−</button>
-      <button class="btn-num" type="button" aria-label="1" onclick="appendToExpr('1')">1</button>
-      <button class="btn-num" type="button" aria-label="2" onclick="appendToExpr('2')">2</button>
-      <button class="btn-num" type="button" aria-label="3" onclick="appendToExpr('3')">3</button>
-      <button class="btn-op" type="button" aria-label="足し算" onclick="appendToExpr('+')">+</button>
-      <button class="btn-num" type="button" aria-label="0" onclick="appendToExpr('0')">0</button>
-      <button class="btn-num btn-del" type="button" aria-label="一文字削除" onclick="deleteLastChar()">C</button>
-      <button class="btn-num" type="button" aria-label="小数点" onclick="appendToExpr('.')">.</button>
+      <button class="btn-clr btn-span2" type="button" aria-label="全消去" data-action="clear">AC</button>
+      <button class="btn-op" type="button" aria-label="パーセント" data-append="%">%</button>
+      <button class="btn-op" type="button" aria-label="割り算" data-append="/">÷</button>
+      <button class="btn-num" type="button" aria-label="7" data-append="7">7</button>
+      <button class="btn-num" type="button" aria-label="8" data-append="8">8</button>
+      <button class="btn-num" type="button" aria-label="9" data-append="9">9</button>
+      <button class="btn-op" type="button" aria-label="掛け算" data-append="*">×</button>
+      <button class="btn-num" type="button" aria-label="4" data-append="4">4</button>
+      <button class="btn-num" type="button" aria-label="5" data-append="5">5</button>
+      <button class="btn-num" type="button" aria-label="6" data-append="6">6</button>
+      <button class="btn-op" type="button" aria-label="引き算" data-append="-">−</button>
+      <button class="btn-num" type="button" aria-label="1" data-append="1">1</button>
+      <button class="btn-num" type="button" aria-label="2" data-append="2">2</button>
+      <button class="btn-num" type="button" aria-label="3" data-append="3">3</button>
+      <button class="btn-op" type="button" aria-label="足し算" data-append="+">+</button>
+      <button class="btn-num" type="button" aria-label="0" data-append="0">0</button>
+      <button class="btn-num btn-del" type="button" aria-label="一文字削除" data-action="delete">C</button>
+      <button class="btn-num" type="button" aria-label="小数点" data-append=".">.</button>
       <button class="btn-eq" type="submit" aria-label="計算実行">=</button>
     </div>
     <div class="result" id="result" role="status" aria-live="polite" aria-atomic="true">{% if result %}{{ result }}{% endif %}</div>
   </form>
 </div>
-<script src="/static/htmx.min.js"></script>
-<script>
-function appendToExpr(val) {
-  const input = document.getElementById('expression');
-  input.value += val;
-  input.focus();
-}
-function deleteLastChar() {
-  const input = document.getElementById('expression');
-  if (!input.value) return;
-  input.value = input.value.slice(0, -1);
-  input.focus();
-}
-
-function adjustFractionBars(root) {
-  const scope = root || document;
-  const stacks = scope.querySelectorAll('.fraction .stack');
-  stacks.forEach((stack) => {
-    const den = stack.querySelector('.den');
-    const bar = stack.querySelector('.bar');
-    if (!den || !bar) return;
-    const width = Math.ceil(den.getBoundingClientRect().width);
-    bar.style.width = width > 0 ? `${width}px` : '';
-  });
-}
-
-// Auto-fit button text: reduce font-size until text fits within button content box
-function fitButtonText(btn, maxPx, minPx) {
-  const style = window.getComputedStyle(btn);
-  const paddingLeft = parseFloat(style.paddingLeft) || 0;
-  const paddingRight = parseFloat(style.paddingRight) || 0;
-  const available = btn.clientWidth - paddingLeft - paddingRight - 2; // small safety
-  let low = minPx, high = maxPx, best = minPx;
-  // binary search for largest font size that fits
-  while (low <= high) {
-    const mid = Math.floor((low + high) / 2);
-    btn.style.fontSize = mid + 'px';
-    // measure scroll width of content
-    if (btn.scrollWidth <= btn.clientWidth) {
-      best = mid;
-      low = mid + 1;
-    } else {
-      high = mid - 1;
-    }
-  }
-  btn.style.fontSize = best + 'px';
-}
-
-function adjustAllButtons() {
-  const btns = document.querySelectorAll('.buttons button');
-  const rootStyle = getComputedStyle(document.documentElement);
-  const maxPx = parseInt(rootStyle.getPropertyValue('--btn-max-font-px')) || 24;
-  const minPx = parseInt(rootStyle.getPropertyValue('--btn-min-font-px')) || 10;
-  btns.forEach((b) => fitButtonText(b, maxPx, minPx));
-}
-
-window.addEventListener('DOMContentLoaded', adjustAllButtons);
-window.addEventListener('DOMContentLoaded', () => { adjustFractionBars(document); });
-window.addEventListener('resize', () => {
-  window.requestAnimationFrame(() => {
-    adjustAllButtons();
-    adjustFractionBars(document);
-  });
-});
-
-// If buttons change (e.g., language or dynamic text), observe mutations
-const btnContainer = document.querySelector('.buttons');
-if (btnContainer && window.MutationObserver) {
-  const mo = new MutationObserver(() => adjustAllButtons());
-  mo.observe(btnContainer, { childList: true, subtree: true, characterData: true });
-}
-
-document.body.addEventListener('htmx:afterSwap', (event) => {
-  window.requestAnimationFrame(() => adjustFractionBars(event.target || document));
-});
-</script>
 </body>
 </html>
