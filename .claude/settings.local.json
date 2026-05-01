@@ -10,7 +10,12 @@
       "Bash(git merge rational --no-ff -m ':*)",
       "Bash(rtk read:*)",
       "Bash(rtk find:*)",
-      "Skill(code-review:code-review)"
+      "Skill(code-review:code-review)",
+      "Bash(rtk gcloud:*)",
+      "Bash(uv run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

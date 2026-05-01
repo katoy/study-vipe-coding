@@ -1,8 +1,8 @@
 {% if is_error %}
 <div class="result" id="result" role="status" aria-live="polite" aria-atomic="true">{{ result }}</div>
 {% else %}
-<input type="text" name="expression" id="expression" value="{{ result }}" aria-label="式入力" placeholder="式を入力" style="width:100%;font-size:1.6rem;background:transparent;border:none;color:var(--display-text);outline:none;text-align:right;" autocomplete="off" hx-swap-oob="true" />
-<div id="fraction-preview" hx-swap-oob="true" style="padding-left:8px;min-width:64px;">
+<input type="text" name="expression" id="expression" value="{{ result }}" aria-label="式入力" placeholder="式を入力" autocomplete="off" hx-swap-oob="true" />
+<div id="fraction-preview" hx-swap-oob="true">
   {% if fraction_parts is defined and fraction_parts and fraction_parts.num != 0 %}
     <span class="fraction" aria-hidden="false">
       {% if fraction_parts.whole and fraction_parts.whole != 0 %}

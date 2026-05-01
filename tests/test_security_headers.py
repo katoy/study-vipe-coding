@@ -25,6 +25,9 @@ def test_default_security_headers_present(monkeypatch: Any) -> None:
     assert "default-src 'self'" in csp
     assert "frame-ancestors 'none'" in csp
     assert "object-src 'none'" in csp
+    # Strict baseline: no inline scripts or styles allowed by default.
+    assert "'unsafe-inline'" not in csp
+    assert "'unsafe-eval'" not in csp
 
 
 def test_hsts_emitted_only_over_https(monkeypatch: Any) -> None:
